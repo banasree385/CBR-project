@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Connect Blog - Latest insights, updates, and innovations in artificial intelligence">
+    <meta name="keywords" content="AI blog, artificial intelligence news, machine learning insights, AI Connect updates">
+    <title>Blog - AI Connect</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <a href="index.html">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Connect</span>
+                    </a>
+                </div>
+                
+                <ul class="nav-menu" id="nav-menu">
+                    <li class="nav-item">
+                        <a href="index.html" class="nav-link">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="about.html" class="nav-link">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="chatbot.html" class="nav-link">AI Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="blog.html" class="nav-link active">Blog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="contact.html" class="nav-link">Contact</a>
+                    </li>
+                </ul>
+                
+                <div class="nav-toggle" id="nav-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title">AI Connect Blog</h1>
+                <p class="page-description">
+                    Stay updated with the latest insights, innovations, and developments in artificial intelligence
+                </p>
+            </div>
+        </section>
+
+        <!-- Blog Hero -->
+        <section class="blog-hero">
+            <div class="container">
+                <div class="featured-post">
+                    <div class="post-image">
+                        <div class="post-placeholder">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <div class="post-category">Featured</div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">
+                                <i class="fas fa-calendar"></i>
+                                October 21, 2025
+                            </span>
+                            <span class="post-author">
+                                <i class="fas fa-user"></i>
+                                Sarah Chen
+                            </span>
+                            <span class="post-read-time">
+                                <i class="fas fa-clock"></i>
+                                5 min read
+                            </span>
+                        </div>
+                        <h2 class="post-title">
+                            <a href="#post-1">The Future of Conversational AI: Beyond Simple Chatbots</a>
+                        </h2>
+                        <p class="post-excerpt">
+                            Explore how advanced language models are transforming digital interactions, 
+                            creating more natural and contextual conversations that feel genuinely human-like.
+                        </p>
+                        <div class="post-tags">
+                            <span class="tag">AI Technology</span>
+                            <span class="tag">Chatbots</span>
+                            <span class="tag">Innovation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Blog Filters -->
+        <section class="blog-filters">
+            <div class="container">
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="category-filter">Category:</label>
+                        <select id="category-filter" onchange="filterPosts()">
+                            <option value="all">All Categories</option>
+                            <option value="ai-technology">AI Technology</option>
+                            <option value="tutorials">Tutorials</option>
+                            <option value="company-news">Company News</option>
+                            <option value="case-studies">Case Studies</option>
+                            <option value="research">Research</option>
+                        </select>
+                    </div>
+                    
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Search posts..." 
+                               onkeyup="searchPosts()" maxlength="100">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Blog Posts Grid -->
+        <section class="blog-posts">
+            <div class="container">
+                <div class="posts-grid" id="posts-grid">
+                    <!-- Blog Post 1 -->
+                    <article class="post-card" data-category="ai-technology">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 18, 2025</span>
+                                <span class="post-category">AI Technology</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-2">Understanding Large Language Models: A Comprehensive Guide</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                Dive deep into how LLMs work, their training process, and the breakthrough 
+                                technologies that make modern AI conversations possible.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Dr. Aisha Patel</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Blog Post 2 -->
+                    <article class="post-card" data-category="tutorials">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-code"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 15, 2025</span>
+                                <span class="post-category">Tutorials</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-3">Building Your First AI Chatbot: A Step-by-Step Tutorial</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                Learn how to create your own AI chatbot from scratch using modern tools 
+                                and frameworks. Perfect for developers getting started with AI.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Marcus Rodriguez</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Blog Post 3 -->
+                    <article class="post-card" data-category="company-news">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 12, 2025</span>
+                                <span class="post-category">Company News</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-4">AI Connect Raises $50M Series B to Democratize AI Access</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                We're excited to announce our Series B funding round, which will help us 
+                                expand our AI platform and make intelligent assistance available to everyone.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Sarah Chen</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Blog Post 4 -->
+                    <article class="post-card" data-category="case-studies">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 10, 2025</span>
+                                <span class="post-category">Case Studies</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-5">How TechCorp Increased Customer Satisfaction by 300% with AI Connect</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                Discover how a leading technology company transformed their customer support 
+                                experience using AI Connect's intelligent chatbot solutions.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>James Thompson</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Blog Post 5 -->
+                    <article class="post-card" data-category="research">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-microscope"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 8, 2025</span>
+                                <span class="post-category">Research</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-6">The Ethics of AI: Ensuring Responsible Development and Deployment</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                Exploring the critical ethical considerations in AI development and how 
+                                AI Connect is leading the way in responsible AI practices.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Dr. Aisha Patel</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Blog Post 6 -->
+                    <article class="post-card" data-category="ai-technology">
+                        <div class="post-image">
+                            <div class="post-placeholder">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span class="post-date">October 5, 2025</span>
+                                <span class="post-category">AI Technology</span>
+                            </div>
+                            <h3 class="post-title">
+                                <a href="#post-7">Multimodal AI: The Next Frontier in Human-Computer Interaction</a>
+                            </h3>
+                            <p class="post-excerpt">
+                                Learn about the exciting developments in multimodal AI that combine text, 
+                                voice, and visual understanding for richer interactions.
+                            </p>
+                            <div class="post-footer">
+                                <div class="post-author">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>Marcus Rodriguez</span>
+                                </div>
+                                <span class="read-more">
+                                    Read More <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Load More Button -->
+                <div class="load-more-section">
+                    <button class="btn btn-secondary btn-large" id="load-more-btn" onclick="loadMorePosts()">
+                        <i class="fas fa-plus"></i>
+                        Load More Posts
+                    </button>
+                </div>
+
+                <!-- No Results Message -->
+                <div class="no-results" id="no-results" style="display: none;">
+                    <div class="no-results-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>No posts found</h3>
+                    <p>Try adjusting your search terms or category filter.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Newsletter Signup -->
+        <section class="newsletter-signup">
+            <div class="container">
+                <div class="newsletter-content">
+                    <div class="newsletter-text">
+                        <h2>Stay Updated with AI Connect</h2>
+                        <p>Get the latest AI insights, tutorials, and company updates delivered directly to your inbox.</p>
+                    </div>
+                    <form class="newsletter-form-inline">
+                        <input type="email" placeholder="Enter your email address" required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-envelope"></i>
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Connect</span>
+                    </div>
+                    <p class="footer-description">
+                        Empowering the future with intelligent AI solutions that transform how we work and interact.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 class="footer-title">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="chatbot.html">AI Chatbot</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="contact.html">Contact Us</a></li>
+                        <li><a href="#help">Help Center</a></li>
+                        <li><a href="#privacy">Privacy Policy</a></li>
+                        <li><a href="#terms">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 class="footer-title">Newsletter</h4>
+                    <p>Stay updated with our latest AI innovations</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Enter your email" required>
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 AI Connect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Chatbot Widget -->
+    <div id="chatbot-widget" class="chatbot-widget">
+        <div class="chatbot-toggle" id="chatbot-toggle">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div class="chatbot-container" id="chatbot-container">
+            <div class="chatbot-header">
+                <h4>AI Assistant</h4>
+                <button class="chatbot-close" id="chatbot-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="message bot-message">
+                    <p>Hello! I'm your AI assistant. How can I help you today?</p>
+                </div>
+            </div>
+            <div class="chatbot-input-area">
+                <input type="text" id="chatbot-input" placeholder="Type your message..." maxlength="500">
+                <button id="chatbot-send" class="chatbot-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/main.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+</html>
