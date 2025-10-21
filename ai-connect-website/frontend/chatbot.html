@@ -86,13 +86,13 @@
                             </div>
                         </div>
                         <div class="chat-controls">
-                            <button class="control-btn" onclick="clearChat()" title="Clear conversation">
+                            <button class="control-btn" id="clear-chat-btn" title="Clear conversation">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            <button class="control-btn" onclick="exportChat()" title="Export conversation">
+                            <button class="control-btn" id="export-chat-btn" title="Export conversation">
                                 <i class="fas fa-download"></i>
                             </button>
-                            <button class="control-btn" onclick="toggleSettings()" title="Settings">
+                            <button class="control-btn" id="settings-btn" title="Settings">
                                 <i class="fas fa-cog"></i>
                             </button>
                         </div>
@@ -120,19 +120,19 @@
 
                     <!-- Quick Actions -->
                     <div class="quick-actions" id="quick-actions">
-                        <div class="quick-action-btn" onclick="sendQuickMessage('Tell me about AI Connect')">
+                        <div class="quick-action-btn" data-message="Tell me about AI Connect">
                             <i class="fas fa-info-circle"></i>
                             <span>About AI Connect</span>
                         </div>
-                        <div class="quick-action-btn" onclick="sendQuickMessage('How can AI help my business?')">
-                            <i class="fas fa-business-time"></i>
-                            <span>Business Solutions</span>
+                        <div class="quick-action-btn" data-message="How can AI help my business?">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Business Benefits</span>
                         </div>
-                        <div class="quick-action-btn" onclick="sendQuickMessage('What are your capabilities?')">
+                        <div class="quick-action-btn" data-message="What are your capabilities?">
                             <i class="fas fa-cogs"></i>
-                            <span>AI Capabilities</span>
+                            <span>Capabilities</span>
                         </div>
-                        <div class="quick-action-btn" onclick="sendQuickMessage('How do I get started?')">
+                        <div class="quick-action-btn" data-message="How do I get started?">
                             <i class="fas fa-play"></i>
                             <span>Getting Started</span>
                         </div>
@@ -147,19 +147,17 @@
                                     placeholder="Type your message here..." 
                                     rows="1"
                                     maxlength="1000"
-                                    onkeydown="handleInputKeydown(event)"
-                                    oninput="adjustTextareaHeight(this)"
                                 ></textarea>
                                 <div class="input-actions">
-                                    <button class="attachment-btn" title="Upload file" onclick="handleFileUpload()">
+                                    <button class="attachment-btn" id="attachment-btn" title="Upload file">
                                         <i class="fas fa-paperclip"></i>
                                     </button>
-                                    <button class="emoji-btn" title="Add emoji" onclick="toggleEmojiPicker()">
+                                    <button class="emoji-btn" id="emoji-btn" title="Add emoji">
                                         <i class="fas fa-smile"></i>
                                     </button>
                                 </div>
                             </div>
-                            <button class="send-btn" id="main-send-btn" onclick="sendMessage()" disabled>
+                            <button class="send-btn" id="main-send-btn" disabled>
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -179,7 +177,7 @@
                 <div class="settings-panel" id="settings-panel">
                     <div class="settings-header">
                         <h4>Chat Settings</h4>
-                        <button class="close-settings" onclick="toggleSettings()">
+                        <button class="close-settings" id="close-settings-btn">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -296,7 +294,7 @@
                 
                 <div class="faq-grid">
                     <div class="faq-item">
-                        <button class="faq-question" onclick="toggleFaq(this)">
+                        <button class="faq-question">
                             <span>How intelligent is the AI chatbot?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -306,7 +304,7 @@
                     </div>
                     
                     <div class="faq-item">
-                        <button class="faq-question" onclick="toggleFaq(this)">
+                        <button class="faq-question">
                             <span>Can the chatbot learn from our conversations?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -316,7 +314,7 @@
                     </div>
                     
                     <div class="faq-item">
-                        <button class="faq-question" onclick="toggleFaq(this)">
+                        <button class="faq-question">
                             <span>Is there a limit to how much I can chat?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -326,7 +324,7 @@
                     </div>
                     
                     <div class="faq-item">
-                        <button class="faq-question" onclick="toggleFaq(this)">
+                        <button class="faq-question">
                             <span>Can I use the chatbot for business purposes?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -400,7 +398,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4>Upload File</h4>
-                <button class="modal-close" onclick="closeModal('file-upload-modal')">
+                <button class="modal-close" data-modal="file-upload-modal">>
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -417,14 +415,14 @@
     <!-- Emoji Picker -->
     <div class="emoji-picker" id="emoji-picker">
         <div class="emoji-grid">
-            <span class="emoji" onclick="insertEmoji('😀')">😀</span>
-            <span class="emoji" onclick="insertEmoji('😊')">😊</span>
-            <span class="emoji" onclick="insertEmoji('😍')">😍</span>
-            <span class="emoji" onclick="insertEmoji('🤔')">🤔</span>
-            <span class="emoji" onclick="insertEmoji('👍')">👍</span>
-            <span class="emoji" onclick="insertEmoji('❤️')">❤️</span>
-            <span class="emoji" onclick="insertEmoji('🎉')">🎉</span>
-            <span class="emoji" onclick="insertEmoji('🚀')">🚀</span>
+            <span class="emoji" data-emoji="😀">😀</span>
+            <span class="emoji" data-emoji="😊">😊</span>
+            <span class="emoji" data-emoji="😍">😍</span>
+            <span class="emoji" data-emoji="🤔">🤔</span>
+            <span class="emoji" data-emoji="👍">👍</span>
+            <span class="emoji" data-emoji="👏">👏</span>
+            <span class="emoji" data-emoji="❤️">❤️</span>
+            <span class="emoji" data-emoji="�">�</span>
         </div>
     </div>
 

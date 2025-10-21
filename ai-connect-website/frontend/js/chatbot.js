@@ -65,9 +65,10 @@ class ChatbotWidget {
         const mainSendBtn = document.getElementById('main-send-btn');
         
         if (mainInput) {
-            mainInput.addEventListener('input', () => {
+            mainInput.addEventListener('input', (e) => {
                 this.updateCharCounter(mainInput, 'main-char-count');
                 this.toggleSendButton(mainSendBtn, mainInput.value.trim());
+                this.adjustTextareaHeight(mainInput);
             });
             
             mainInput.addEventListener('keydown', (e) => {
@@ -79,14 +80,78 @@ class ChatbotWidget {
             mainSendBtn.addEventListener('click', () => this.sendMainMessage());
         }
 
-        // Settings panel
-        const settingsToggle = document.querySelector('[onclick*=\"toggleSettings\"]');
-        if (settingsToggle) {
-            settingsToggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.toggleSettings();
-            });
+        // Control buttons
+        const clearBtn = document.getElementById('clear-chat-btn');
+        const exportBtn = document.getElementById('export-chat-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearChat());
         }
+        
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportChat());
+        }
+        
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.toggleSettings());
+        }
+        
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => this.toggleSettings());
+        }
+
+        // Quick action buttons
+        const quickActionBtns = document.querySelectorAll('.quick-action-btn');
+        quickActionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const message = btn.dataset.message;
+                if (message) {
+                    this.sendQuickMessage(message);
+                }
+            });
+        });
+
+        // Attachment and emoji buttons
+        const attachmentBtn = document.getElementById('attachment-btn');
+        const emojiBtn = document.getElementById('emoji-btn');
+        
+        if (attachmentBtn) {
+            attachmentBtn.addEventListener('click', () => this.handleFileUpload());
+        }
+        
+        if (emojiBtn) {
+            emojiBtn.addEventListener('click', () => this.toggleEmojiPicker());
+        }
+
+        // Emoji picker
+        const emojiElements = document.querySelectorAll('.emoji');
+        emojiElements.forEach(emoji => {
+            emoji.addEventListener('click', () => {
+                const emojiChar = emoji.dataset.emoji;
+                if (emojiChar) {
+                    this.insertEmoji(emojiChar);
+                }
+            });
+        });
+
+        // Modal close buttons
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+        modalCloseButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const modalId = btn.dataset.modal;
+                if (modalId) {
+                    this.closeModal(modalId);
+                }
+            });
+        });
+
+        // FAQ buttons
+        const faqButtons = document.querySelectorAll('.faq-question');
+        faqButtons.forEach(btn => {
+            btn.addEventListener('click', () => this.toggleFaq(btn));
+        });
     }
 
     toggleWidget() {
@@ -157,7 +222,7 @@ class ChatbotWidget {
         } catch (error) {
             console.error('Chatbot error:', error);
             this.hideTypingIndicator();
-            this.addMessage('I apologize, but I\\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+            this.addMessage('I apologize, but I\'m having trouble connecting right now. Please try again in a moment.', 'bot');
         }
         
         // Save conversation
@@ -201,20 +266,20 @@ class ChatbotWidget {
         } catch (error) {
             console.error('Chatbot error:', error);
             this.hideMainTypingIndicator();
-            this.addMainMessage('I apologize, but I\\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+            this.addMainMessage('I apologize, but I\'m having trouble connecting right now. Please try again in a moment.', 'bot');
         }
     }
 
     async callChatbotAPI(message) {
-        const response = await fetch('/api/chatbot/message', {
+        // Use Python backend running on port 8001
+        const response = await fetch('http://localhost:8001/api/v1/chat/message', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 message: message,
-                history: this.messageHistory.slice(-10), // Send last 10 messages for context
-                settings: this.settings
+                session_id: `web-session-${Date.now()}` // Generate unique session ID
             })
         });
         
@@ -223,7 +288,7 @@ class ChatbotWidget {
         }
         
         const data = await response.json();
-        return data.response;
+        return data.message; // Python backend returns message in 'message' field
     }
 
     addMessage(message, sender) {
@@ -393,6 +458,7 @@ class ChatbotWidget {
     }
 
     adjustTextareaHeight(textarea) {
+        if (!textarea) return;
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
     }
@@ -635,6 +701,30 @@ class ChatbotWidget {
         this.toggleEmojiPicker();
     }
 
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    toggleFaq(button) {
+        const faqItem = button.closest('.faq-item');
+        if (faqItem) {
+            const answer = faqItem.querySelector('.faq-answer');
+            const icon = button.querySelector('i');
+            
+            if (answer) {
+                const isOpen = answer.style.display === 'block';
+                answer.style.display = isOpen ? 'none' : 'block';
+                
+                if (icon) {
+                    icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            }
+        }
+    }
+
     initializeMainChatbot() {
         // Initialize main chatbot page specific functionality
         if (document.querySelector('.chatbot-interface')) {
@@ -850,7 +940,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.chatbot = new ChatbotWidget();
 });
 
-// Global functions for HTML onclick handlers
+// Global functions are no longer needed since we're using proper event listeners
+// Keeping minimal global functions for backward compatibility
+
 window.sendQuickMessage = function(message) {
     if (window.chatbot) {
         window.chatbot.sendQuickMessage(message);
@@ -866,48 +958,5 @@ window.clearChat = function() {
 window.exportChat = function() {
     if (window.chatbot) {
         window.chatbot.exportChat();
-    }
-};
-
-window.toggleSettings = function() {
-    if (window.chatbot) {
-        window.chatbot.toggleSettings();
-    }
-};
-
-window.handleFileUpload = function() {
-    if (window.chatbot) {
-        window.chatbot.handleFileUpload();
-    }
-};
-
-window.toggleEmojiPicker = function() {
-    if (window.chatbot) {
-        window.chatbot.toggleEmojiPicker();
-    }
-};
-
-window.insertEmoji = function(emoji) {
-    if (window.chatbot) {
-        window.chatbot.insertEmoji(emoji);
-    }
-};
-
-window.adjustTextareaHeight = function(textarea) {
-    if (window.chatbot) {
-        window.chatbot.adjustTextareaHeight(textarea);
-    }
-};
-
-window.handleInputKeydown = function(event) {
-    if (window.chatbot) {
-        window.chatbot.handleInputKeydown(event);
-    }
-};
-
-window.closeModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
     }
 };
