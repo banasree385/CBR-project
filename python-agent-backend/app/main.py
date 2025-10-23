@@ -5,9 +5,11 @@ FastAPI Main Application Entry Point
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import structlog
 from contextlib import asynccontextmanager
+import os
 
 from app.config_simple import get_settings
 from app.api import chat, agent
@@ -28,22 +30,17 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting AI Foundry Agent Backend", version=settings.app_version)
     
-    # Initialize services - commented out for testing chat function only
+    # Initialize services
     try:
-        # Initialize only GPT service for chat testing
-        from app.services.gpt_service import GPTService
+        # Initialize Azure Agent Service
+        from app.services.azure_agent_service import SimpleAzureAgentService
         
-        gpt_service = GPTService()
+        azure_agent_service = SimpleAzureAgentService()
         
-        # Comment out Azure AI service to avoid connection issues during testing
-        # from app.services.azure_ai_service import AzureAIService
-        # azure_service = AzureAIService()
-        # await azure_service.verify_connection()
+        # Verify Azure Agent Service connection
+        await azure_agent_service.verify_connection()
         
-        # Verify GPT connection (will use mock mode if no credentials)
-        await gpt_service.verify_connection()
-        
-        logger.info("Services initialized successfully - GPT service ready for testing")
+        logger.info("Services initialized successfully - Azure Agent Service ready for testing")
         
     except Exception as e:
         logger.error("Failed to initialize services", error=str(e))
@@ -75,9 +72,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# Authentication Middleware
-app.add_middleware(AuthMiddleware)
 
 # Exception handlers
 @app.exception_handler(CustomException)
@@ -115,10 +109,10 @@ async def health_check():
         "timestamp": "2025-10-21T17:00:00Z"
     }
 
-# Root endpoint
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
+# Root endpoint for API info (only when accessing /api)
+@app.get("/api")
+async def api_info():
+    """API information endpoint."""
     return {
         "message": "Azure AI Foundry Agent Backend",
         "version": settings.app_version,
@@ -127,7 +121,10 @@ async def root():
         "api": f"{settings.api_v1_str}"
     }
 
-# Include API routers
+# Authentication Middleware
+app.add_middleware(AuthMiddleware)
+
+# Include API routers BEFORE static files
 app.include_router(
     chat.router,
     prefix=f"{settings.api_v1_str}/chat",
@@ -140,6 +137,37 @@ app.include_router(
     tags=["agent"]
 )
 
+# Mount static files AFTER API routes
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    # Serve HTML files directly from root
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
+
+# Exception handlers
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request, exc: CustomException):
+    """Handle custom exceptions."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.error_type,
+            "message": exc.message,
+            "details": exc.details
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc: Exception):
+    """Handle general exceptions."""
+    logger.error("Unhandled exception", error=str(exc), path=request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "internal_server_error",
+            "message": "An internal server error occurred"
+        }
+    )
 
 # Development server
 if __name__ == "__main__":

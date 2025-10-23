@@ -23,38 +23,25 @@ class Settings:
         # API Configuration
         self.api_v1_str = os.getenv("API_V1_STR", "/api/v1")
         self.secret_key = os.getenv("SECRET_KEY", "test_secret_key_for_demo_only_not_for_production")
-        self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
         
-        # Azure OpenAI Configuration
-        self.azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "https://mock-openai-resource.openai.azure.com/")
-        self.azure_openai_api_key = os.getenv("AZURE_OPENAI_API_KEY", "mock_api_key")
-        self.azure_openai_deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")
-        self.azure_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-        
-        # Azure Active Directory
-        self.azure_client_id = os.getenv("AZURE_CLIENT_ID", "mock_client_id")
-        self.azure_client_secret = os.getenv("AZURE_CLIENT_SECRET", "mock_client_secret")
-        self.azure_tenant_id = os.getenv("AZURE_TENANT_ID", "mock_tenant_id")
-        
-        # Azure AI Foundry
-        self.azure_ai_foundry_endpoint = os.getenv("AZURE_AI_FOUNDRY_ENDPOINT", "https://mock-ai-foundry.cognitiveservices.azure.com/")
-        self.azure_ai_foundry_key = os.getenv("AZURE_AI_FOUNDRY_KEY", "mock_foundry_key")
-        self.azure_subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID", "mock_subscription_id")
-        self.azure_resource_group = os.getenv("AZURE_RESOURCE_GROUP", "mock_resource_group")
-        
+        # Azure OpenAI / Azure AI Foundry Configuration
+        # Prefer explicit environment values; default to empty to avoid accidental use of mocks
+        self.azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+        # For Azure AI Foundry, use AZURE_AI_FOUNDRY_KEY if AZURE_OPENAI_API_KEY is not set
+        self.azure_openai_api_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_FOUNDRY_KEY", "")
+        self.azure_openai_deployment_name = os.getenv("AGENT_MODEL_DEPLOYMENT_NAME", "gpt41")
+        self.azure_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "")
+
+        # Azure AI Foundry project-specific configuration
+        self.azure_ai_foundry_endpoint = os.getenv("AZURE_AI_FOUNDRY_ENDPOINT", "")
+        self.azure_ai_foundry_key = os.getenv("AZURE_AI_FOUNDRY_KEY", "")
+        self.azure_subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+        self.azure_resource_group = os.getenv("AZURE_RESOURCE_GROUP_NAME", "")
+        self.azure_project_name = os.getenv("AZURE_PROJECT_NAME", "")
+
         # CORS Configuration
-        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
+        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://localhost:8001")
         self.cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
-        
-        # Database (Optional)
-        self.database_url = os.getenv("DATABASE_URL")
-        
-        # Redis (Optional)
-        self.redis_url = os.getenv("REDIS_URL")
-        
-        # Monitoring
-        self.enable_telemetry = os.getenv("ENABLE_TELEMETRY", "true").lower() in ("true", "1", "yes")
-        self.application_insights_connection_string = os.getenv("APPLICATION_INSIGHTS_CONNECTION_STRING")
 
 
 # Global settings instance

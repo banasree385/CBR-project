@@ -12,8 +12,7 @@ import structlog
 from app.models.chat import (
     ChatRequest, ChatResponse, ChatHistory, ChatSession, ChatMessage, MessageRole
 )
-from app.services.gpt_service import GPTService
-from app.services.azure_ai_service import AzureAIService
+from app.services.azure_agent_service import SimpleAzureAgentService
 from app.utils.exceptions import CustomException
 
 logger = structlog.get_logger()
@@ -26,21 +25,15 @@ chat_sessions = {}
 chat_histories = {}
 
 
-def get_gpt_service() -> GPTService:
-    """Dependency to get GPT service instance."""
-    return GPTService()
-
-
-def get_azure_ai_service() -> AzureAIService:
-    """Dependency to get Azure AI service instance."""
-    return AzureAIService()
+def get_azure_agent_service() -> SimpleAzureAgentService:
+    """Dependency to get Azure Agent service instance."""
+    return SimpleAzureAgentService()
 
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     request: ChatRequest,
-    gpt_service: GPTService = Depends(get_gpt_service),
-    azure_ai_service: AzureAIService = Depends(get_azure_ai_service)
+    azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
 ):
     """Send a message to the AI agent and get a response."""
     
@@ -54,33 +47,29 @@ async def send_message(
         
         conversation_history = chat_histories[session_id]
         
-        # Generate response using GPT service
-        gpt_response = await gpt_service.generate_chat_response(
-            user_message=request.message,
-            conversation_history=conversation_history,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens
-        )
-        
-        # Create response message
-        assistant_message = ChatMessage(
-            role=MessageRole.ASSISTANT,
-            content=gpt_response["content"],
-            metadata={
-                "model_used": gpt_response["model_used"],
-                "tokens_used": gpt_response["tokens_used"],
-                "response_time_ms": gpt_response["response_time_ms"]
-            }
-        )
-        
-        # Add user message to history
+        # Add user message to conversation history
         user_message = ChatMessage(
             role=MessageRole.USER,
             content=request.message
         )
+        conversation_history.append(user_message)
+        
+        # Generate response using Azure Agent Service
+        agent_response = await azure_agent_service.generate_response(conversation_history)
+        
+        # Create response message
+        assistant_message = ChatMessage(
+            role=MessageRole.ASSISTANT,
+            content=agent_response["content"],
+            metadata={
+                "model_used": agent_response["model_used"],
+                "tokens_used": agent_response["tokens_used"],
+                "response_time": agent_response["response_time"]
+            }
+        )
         
         # Update conversation history
-        chat_histories[session_id].extend([user_message, assistant_message])
+        chat_histories[session_id].append(assistant_message)
         
         # Update session info
         if session_id not in chat_sessions:
@@ -94,11 +83,11 @@ async def send_message(
         
         # Create response
         response = ChatResponse(
-            message=gpt_response["content"],
+            message=agent_response["content"],
             session_id=session_id,
-            model_used=gpt_response["model_used"],
-            tokens_used=gpt_response["tokens_used"],
-            response_time_ms=gpt_response["response_time_ms"]
+            model_used=agent_response["model_used"],
+            tokens_used=agent_response["tokens_used"],
+            response_time_ms=int(agent_response["response_time"] * 1000)  # Convert to milliseconds
         )
         
         logger.info(
@@ -260,7 +249,7 @@ async def clear_chat_history(session_id: str):
 @router.post("/sessions/{session_id}/summarize")
 async def summarize_conversation(
     session_id: str,
-    gpt_service: GPTService = Depends(get_gpt_service)
+    azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
 ):
     """Generate a summary of the conversation."""
     
@@ -284,8 +273,14 @@ async def summarize_conversation(
                 }
             )
         
-        # Generate summary
-        summary = await gpt_service.summarize_conversation(messages)
+        # Generate summary using Azure Agent Service
+        summary_request = [ChatMessage(
+            role=MessageRole.USER,
+            content=f"Please provide a brief summary of this conversation:\n\n" + 
+                   "\n".join([f"{msg.role.value}: {msg.content}" for msg in messages])
+        )]
+        summary_response = await azure_agent_service.generate_response(summary_request)
+        summary = summary_response["content"]
         
         logger.info("Conversation summarized", session_id=session_id, message_count=len(messages))
         return {
@@ -311,7 +306,7 @@ async def summarize_conversation(
 @router.post("/analyze-sentiment")
 async def analyze_message_sentiment(
     message: str,
-    gpt_service: GPTService = Depends(get_gpt_service)
+    azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
 ):
     """Analyze the sentiment of a message."""
     
@@ -325,14 +320,22 @@ async def analyze_message_sentiment(
                 }
             )
         
-        # Analyze sentiment
-        sentiment_result = await gpt_service.analyze_sentiment(message)
+        # Analyze sentiment using Azure Agent Service
+        sentiment_request = [ChatMessage(
+            role=MessageRole.USER,
+            content=f"Analyze the sentiment of this message and respond with just 'positive', 'negative', or 'neutral': {message}"
+        )]
+        sentiment_response = await azure_agent_service.generate_response(sentiment_request)
+        sentiment = sentiment_response["content"].strip().lower()
         
-        logger.info("Message sentiment analyzed", sentiment=sentiment_result["sentiment"])
+        # Default confidence since we don't have a sophisticated sentiment analysis
+        confidence = 0.8
+        
+        logger.info("Message sentiment analyzed", sentiment=sentiment)
         return {
             "message": message,
-            "sentiment": sentiment_result["sentiment"],
-            "confidence": sentiment_result["confidence"],
+            "sentiment": sentiment,
+            "confidence": confidence,
             "analyzed_at": datetime.utcnow()
         }
         

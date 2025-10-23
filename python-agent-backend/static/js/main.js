@@ -382,8 +382,8 @@ async function handleContactSubmit(event) {
     submitBtn.disabled = true;
     
     try {
-        // Send form data to backend
-        const response = await fetch('/api/contact', {
+        // Send form data to Python backend
+        const response = await fetch('/api/v1/contact', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
