@@ -17,12 +17,12 @@ from azure.ai.agents.models import (
     Agent,
     AgentThread,
     MessageRole,
+    BingGroundingTool,
 )
 from azure.identity import DefaultAzureCredential
 
 from app.config_simple import get_settings
 from app.models.chat import ChatMessage, MessageRole as ChatMessageRole
-from app.utils.exceptions import CustomException
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -81,6 +81,11 @@ class SimpleAzureAgentService:
             logger.info(f"Azure AI Project client initialized with endpoint: {settings.azure_ai_foundry_endpoint}")
             logger.info(f"Using project: {settings.azure_project_name} in resource group: {settings.azure_resource_group}")
             
+            # Check if we should use an existing agent ID
+            self.existing_agent_id = os.getenv("AZURE_AGENT_ID")
+            if self.existing_agent_id:
+                logger.info(f"Will use existing agent: {self.existing_agent_id}")
+            
         except Exception as e:
             logger.error("Failed to initialize Azure AI Project client", error=str(e))
             self.project_client = None
@@ -110,17 +115,75 @@ class SimpleAzureAgentService:
             if not self._client_context:
                 self._client_context = self.project_client.__enter__()
             
-            # Create agent if not exists
+            # Use existing agent or create new one
+            if not self.agent:
+                if hasattr(self, 'existing_agent_id') and self.existing_agent_id:
+                    # Use existing agent from Azure AI Foundry
+                    logger.info(f"Using existing agent: {self.existing_agent_id}")
+                    try:
+                        self.agent = self.project_client.agents.get_agent(self.existing_agent_id)
+                        logger.info(f"Retrieved existing agent: {self.agent.id}")
+                    except Exception as e:
+                        logger.warning(f"Failed to retrieve existing agent {self.existing_agent_id}: {e}")
+                        logger.info("Will create new agent instead")
+                        self.agent = None
+                
+                # Create new agent if no existing agent or retrieval failed
+                if not self.agent:
+                    logger.info("Creating new agent...")
+                    # Create agent if not exists
             if not self.agent:
                 logger.info("Creating agent...")
-                self.agent = self.project_client.agents.create_agent(
-                    model=settings.azure_openai_deployment_name,
-                    name="Simple AI Agent",
-                    instructions="You are a helpful AI assistant.",
-                    temperature=0.7,
-                    headers={"x-ms-enable-preview": "true"},
-                )
-                logger.info(f"Created agent, ID: {self.agent.id}")
+                
+                # Initialize Bing Grounding tool with your connection
+                bing_connection_id = os.getenv("BING_CONNECTION_ID")
+                if not bing_connection_id:
+                    logger.warning("BING_CONNECTION_ID not set, agent will work without Bing grounding")
+                    bing_tool = None
+                else:
+                    logger.info(f"Using Bing connection: {bing_connection_id}")
+                    bing_tool = BingGroundingTool(connection_id=bing_connection_id)
+                
+                # Create agent with enhanced instructions for CBR grounding
+                agent_instructions = """You are a helpful assistant specializing in Dutch driving licenses, exams, and regulations from CBR.nl.
+
+IMPORTANT: When users ask about CBR-related topics (driving licenses, theory exams, practical tests, costs, requirements), ALWAYS search for current information from CBR.nl using your web search capabilities.
+
+Your expertise includes:
+- Theory exam costs and procedures  
+- Practical test requirements and costs
+- Driving license categories and requirements
+- CBR regulations and policies
+- Dutch traffic laws related to licensing
+
+INSTRUCTIONS:
+1. ALWAYS search for current information when asked about CBR topics
+2. When providing information found through web search, mention "Based on current information from CBR.nl" or "According to the latest information I found"
+3. Include citations and source references when available
+4. If information is from your training data, clearly state "Based on my general knowledge" to distinguish it from current web search results
+
+Always search for the most current information and cite your sources from CBR.nl."""
+
+                # Create agent with or without Bing grounding
+                if bing_tool:
+                    self.agent = self.project_client.agents.create_agent(
+                        model=settings.azure_openai_deployment_name,
+                        name="CBR.nl Assistant with Bing Grounding",
+                        instructions=agent_instructions,
+                        tools=bing_tool.definitions,  # Use official Bing grounding tool
+                        temperature=0.7,
+                        headers={"x-ms-enable-preview": "true"},
+                    )
+                    logger.info(f"Created agent with Bing grounding, ID: {self.agent.id}")
+                else:
+                    self.agent = self.project_client.agents.create_agent(
+                        model=settings.azure_openai_deployment_name,
+                        name="CBR.nl Assistant",
+                        instructions=agent_instructions,
+                        temperature=0.7,
+                        headers={"x-ms-enable-preview": "true"},
+                    )
+                    logger.info(f"Created agent without grounding, ID: {self.agent.id}")
             
             # Create thread if not exists
             if not self.thread:
@@ -187,13 +250,17 @@ class SimpleAzureAgentService:
             max_iterations = 60  # Max 2 minutes
             iteration = 0
             
-            while run.status in ("queued", "in_progress") and iteration < max_iterations:
+            while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
                 await asyncio.sleep(2)
                 iteration += 1
                 
                 try:
                     run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
                     logger.info(f"Run status: {run.status} (iteration {iteration})")
+                    
+                    # Note: Azure AI Foundry handles Bing grounding tool execution automatically
+                    # No manual tool execution needed for BingGroundingTool
+                            
                 except Exception as e:
                     logger.error(f"Error getting run status: {e}")
                     await asyncio.sleep(5)

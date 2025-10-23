@@ -9,7 +9,8 @@ import sys
 import os
 
 # Add the app directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+# Add the app directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.azure_agent_service import SimpleAzureAgentService
 from models.chat import ChatMessage, MessageRole

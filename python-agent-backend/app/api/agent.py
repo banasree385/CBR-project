@@ -1,100 +1,95 @@
 """
-Agent API endpoints for Azure AI Foundry Agent Service
-Simplified for workshop - focus on chat functionality
+Simple Agent API endpoints for workshop
+Perfect for learning basic AI agent functionality
 """
 
-import asyncio
 import time
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends
 import structlog
 
 from app.models.chat import ChatMessage, MessageRole
 from app.services.azure_agent_service import SimpleAzureAgentService
-from app.utils.exceptions import CustomException
 
 logger = structlog.get_logger()
 
 router = APIRouter()
 
-# In-memory storage for demo purposes
-agent_tasks = {}
-agent_metrics = {}
-
 
 def get_azure_agent_service() -> SimpleAzureAgentService:
-    """Dependency to get Azure Agent service instance."""
+    """Get Azure Agent service instance."""
     return SimpleAzureAgentService()
 
 
 @router.get("/status")
 async def get_agent_status():
-    """Get the status of the Azure Agent Service."""
+    """Check if the Azure Agent Service is working."""
     try:
         azure_agent_service = get_azure_agent_service()
         connection_ok = await azure_agent_service.verify_connection()
         
         return {
-            "status": "active" if connection_ok else "inactive",
-            "service": "Azure AI Agent Service",
+            "status": "working" if connection_ok else "not_working",
+            "service": "Azure AI Agent",
             "timestamp": datetime.utcnow(),
-            "message": "Azure Agent Service is running" if connection_ok else "Azure Agent Service connection failed"
+            "message": "Azure Agent is ready!" if connection_ok else "Azure Agent connection failed"
         }
         
     except Exception as e:
-        logger.error("Failed to get agent status", error=str(e))
+        logger.error("Agent status check failed", error=str(e))
         return {
             "status": "error",
-            "service": "Azure AI Agent Service", 
+            "service": "Azure AI Agent", 
             "timestamp": datetime.utcnow(),
             "message": f"Error: {str(e)}"
         }
 
 
-@router.post("/simple-query")
-async def simple_agent_query(
+@router.post("/ask")
+async def ask_agent(
     message: str,
     azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
 ):
-    """Send a simple message to the Azure Agent Service."""
+    """Ask the AI agent a simple question."""
     
     try:
         if not message.strip():
             raise HTTPException(
                 status_code=400,
-                detail="Message cannot be empty"
+                detail="Please provide a message to send to the agent"
             )
         
-        # Create a simple message
+        # Create a simple message for the agent
+        start_time = time.time()
         messages = [ChatMessage(
             role=MessageRole.USER,
             content=message
         )]
         
-        # Generate response
+        # Get response from Azure AI agent
         response = await azure_agent_service.generate_response(messages)
+        response_time = time.time() - start_time
         
-        logger.info("Agent query processed", message_length=len(message))
+        logger.info("Agent question processed", 
+                   message_length=len(message), 
+                   response_time=response_time)
         
         return {
-            "message": message,
-            "response": response["content"],
+            "your_message": message,
+            "agent_response": response["content"],
             "model_used": response["model_used"],
-            "tokens_used": response["tokens_used"],
-            "response_time": response["response_time"],
+            "response_time_seconds": round(response_time, 2),
             "timestamp": datetime.utcnow()
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to process agent query", error=str(e))
+        logger.error("Agent question failed", error=str(e))
         raise HTTPException(
             status_code=500,
-            detail=f"Agent query failed: {str(e)}"
+            detail=f"Sorry, the agent couldn't process your question: {str(e)}"
         )
 
 
-# Additional endpoints can be added here as the workshop progresses
-# For now, we keep it simple with just status and simple query endpoints
+# Workshop participants can add more endpoints here as they learn!

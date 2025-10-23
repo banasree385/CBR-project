@@ -13,7 +13,6 @@ from app.models.chat import (
     ChatRequest, ChatResponse, ChatHistory, ChatSession, ChatMessage, MessageRole
 )
 from app.services.azure_agent_service import SimpleAzureAgentService
-from app.utils.exceptions import CustomException
 
 logger = structlog.get_logger()
 
@@ -24,10 +23,16 @@ router = APIRouter()
 chat_sessions = {}
 chat_histories = {}
 
+# Global Azure Agent Service instance (singleton)
+_azure_agent_service = None
+
 
 def get_azure_agent_service() -> SimpleAzureAgentService:
     """Dependency to get Azure Agent service instance."""
-    return SimpleAzureAgentService()
+    global _azure_agent_service
+    if _azure_agent_service is None:
+        _azure_agent_service = SimpleAzureAgentService()
+    return _azure_agent_service
 
 
 @router.post("/message", response_model=ChatResponse)
@@ -100,8 +105,6 @@ async def send_message(
         
         return response
         
-    except CustomException:
-        raise
     except Exception as e:
         logger.error("Failed to process chat message", error=str(e))
         raise HTTPException(
@@ -246,107 +249,5 @@ async def clear_chat_history(session_id: str):
         )
 
 
-@router.post("/sessions/{session_id}/summarize")
-async def summarize_conversation(
-    session_id: str,
-    azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
-):
-    """Generate a summary of the conversation."""
-    
-    try:
-        if session_id not in chat_histories:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "error": "session_not_found",
-                    "message": f"Chat session {session_id} not found"
-                }
-            )
-        
-        messages = chat_histories[session_id]
-        if not messages:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "empty_conversation",
-                    "message": "Cannot summarize an empty conversation"
-                }
-            )
-        
-        # Generate summary using Azure Agent Service
-        summary_request = [ChatMessage(
-            role=MessageRole.USER,
-            content=f"Please provide a brief summary of this conversation:\n\n" + 
-                   "\n".join([f"{msg.role.value}: {msg.content}" for msg in messages])
-        )]
-        summary_response = await azure_agent_service.generate_response(summary_request)
-        summary = summary_response["content"]
-        
-        logger.info("Conversation summarized", session_id=session_id, message_count=len(messages))
-        return {
-            "session_id": session_id,
-            "summary": summary,
-            "message_count": len(messages),
-            "generated_at": datetime.utcnow()
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to summarize conversation", session_id=session_id, error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "summarization_error",
-                "message": "Failed to generate conversation summary"
-            }
-        )
-
-
-@router.post("/analyze-sentiment")
-async def analyze_message_sentiment(
-    message: str,
-    azure_agent_service: SimpleAzureAgentService = Depends(get_azure_agent_service)
-):
-    """Analyze the sentiment of a message."""
-    
-    try:
-        if not message.strip():
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "empty_message",
-                    "message": "Message cannot be empty"
-                }
-            )
-        
-        # Analyze sentiment using Azure Agent Service
-        sentiment_request = [ChatMessage(
-            role=MessageRole.USER,
-            content=f"Analyze the sentiment of this message and respond with just 'positive', 'negative', or 'neutral': {message}"
-        )]
-        sentiment_response = await azure_agent_service.generate_response(sentiment_request)
-        sentiment = sentiment_response["content"].strip().lower()
-        
-        # Default confidence since we don't have a sophisticated sentiment analysis
-        confidence = 0.8
-        
-        logger.info("Message sentiment analyzed", sentiment=sentiment)
-        return {
-            "message": message,
-            "sentiment": sentiment,
-            "confidence": confidence,
-            "analyzed_at": datetime.utcnow()
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to analyze sentiment", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "sentiment_analysis_error",
-                "message": "Failed to analyze message sentiment"
-            }
-        )
+# Additional advanced endpoints can be added here as workshop progresses
+# Keeping it simple for now with core chat functionality

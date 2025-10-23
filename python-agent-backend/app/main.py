@@ -13,9 +13,7 @@ import os
 
 from app.config_simple import get_settings
 from app.api import chat, agent
-from app.middleware.auth import AuthMiddleware
 from app.utils.logger import setup_logging
-from app.utils.exceptions import CustomException
 
 # Setup logging
 setup_logging()
@@ -73,31 +71,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Exception handlers
-@app.exception_handler(CustomException)
-async def custom_exception_handler(request, exc: CustomException):
-    """Handle custom exceptions."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": exc.error_type,
-            "message": exc.message,
-            "details": exc.details
-        }
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc: Exception):
-    """Handle general exceptions."""
-    logger.error("Unhandled exception", error=str(exc), path=request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "internal_server_error",
-            "message": "An internal server error occurred"
-        }
-    )
-
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -107,6 +80,16 @@ async def health_check():
         "app_name": settings.app_name,
         "version": settings.app_version,
         "timestamp": "2025-10-21T17:00:00Z"
+    }
+
+# Simple test endpoint for API connectivity
+@app.get("/api/test")
+async def api_test():
+    """Simple API test endpoint."""
+    return {
+        "status": "success",
+        "message": "API is working correctly",
+        "timestamp": "2025-10-23T19:16:00Z"
     }
 
 # Root endpoint for API info (only when accessing /api)
@@ -120,9 +103,6 @@ async def api_info():
         "health": "/health",
         "api": f"{settings.api_v1_str}"
     }
-
-# Authentication Middleware
-app.add_middleware(AuthMiddleware)
 
 # Include API routers BEFORE static files
 app.include_router(
@@ -145,18 +125,6 @@ if os.path.exists(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
 # Exception handlers
-@app.exception_handler(CustomException)
-async def custom_exception_handler(request, exc: CustomException):
-    """Handle custom exceptions."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": exc.error_type,
-            "message": exc.message,
-            "details": exc.details
-        }
-    )
-
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc: Exception):
     """Handle general exceptions."""
