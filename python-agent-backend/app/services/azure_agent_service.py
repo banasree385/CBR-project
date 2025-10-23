@@ -36,29 +36,19 @@ class SimpleAzureAgentService:
         self.project_client = None
         self.agent = None
         self.thread = None
+        self._client_context = None
         self._configure_ssl()
         self._initialize_client()
     
     def _configure_ssl(self):
         """Configure SSL settings for Azure AI services."""
         try:
-            # For Azure AI Foundry endpoints that may have certificate issues,
-            # use a more permissive SSL configuration for development
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            # Use proper SSL verification with updated certificates for Codespace
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            ssl_context.check_hostname = True
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
             
-            # Set environment variables for Azure SDK
-            os.environ['PYTHONHTTPSVERIFY'] = '0'
-            os.environ['AZURE_CLI_DISABLE_CONNECTION_VERIFICATION'] = '1'
-            
-            # Create a permissive SSL context for Azure AI services
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            # Override default HTTPS context for Azure SDK requests
-            ssl._create_default_https_context = lambda: ssl_context
-            
-            logger.warning("SSL verification disabled for Azure AI services (development mode)")
+            logger.info("SSL verification enabled with proper certificates for Azure AI services")
             
         except Exception as e:
             logger.error("Failed to configure SSL", error=str(e))
@@ -66,8 +56,12 @@ class SimpleAzureAgentService:
     def _initialize_client(self):
         """Initialize the Azure AI Project client using simple approach."""
         try:
+            # Debug: Log the endpoint value
+            logger.info(f"Azure AI Foundry endpoint from config: '{settings.azure_ai_foundry_endpoint}'")
+            logger.info(f"Azure AI Foundry key present: {bool(settings.azure_ai_foundry_key)}")
+            
             # Check if we have real credentials
-            if not settings.azure_ai_foundry_endpoint or settings.azure_ai_foundry_endpoint == "https://your-ai-foundry.cognitiveservices.azure.com/":
+            if not settings.azure_ai_foundry_endpoint or settings.azure_ai_foundry_endpoint.startswith("https://your-"):
                 logger.warning("No real Azure AI Foundry endpoint found, using mock mode")
                 return
             
@@ -112,25 +106,27 @@ class SimpleAzureAgentService:
                 logger.warning("No project client available, using mock mode")
                 return True
             
+            # Open client context if not already open
+            if not self._client_context:
+                self._client_context = self.project_client.__enter__()
+            
             # Create agent if not exists
             if not self.agent:
-                with self.project_client:
-                    logger.info("Creating agent...")
-                    self.agent = self.project_client.agents.create_agent(
-                        model=settings.azure_openai_deployment_name,
-                        name="Simple AI Agent",
-                        instructions="You are a helpful AI assistant.",
-                        temperature=0.7,
-                        headers={"x-ms-enable-preview": "true"},
-                    )
-                    logger.info(f"Created agent, ID: {self.agent.id}")
+                logger.info("Creating agent...")
+                self.agent = self.project_client.agents.create_agent(
+                    model=settings.azure_openai_deployment_name,
+                    name="Simple AI Agent",
+                    instructions="You are a helpful AI assistant.",
+                    temperature=0.7,
+                    headers={"x-ms-enable-preview": "true"},
+                )
+                logger.info(f"Created agent, ID: {self.agent.id}")
             
             # Create thread if not exists
             if not self.thread:
-                with self.project_client:
-                    logger.info("Creating thread...")
-                    self.thread = self.project_client.agents.threads.create()
-                    logger.info(f"Created thread, ID: {self.thread.id}")
+                logger.info("Creating thread...")
+                self.thread = self.project_client.agents.threads.create()
+                logger.info(f"Created thread, ID: {self.thread.id}")
             
             return True
             
@@ -166,104 +162,107 @@ class SimpleAzureAgentService:
             
             start_time = time.time()
             
-            with self.project_client:
-                # Create message
-                logger.info(f"Creating message in thread {self.thread.id}...")
-                message = self.project_client.agents.messages.create(
-                    thread_id=self.thread.id,
-                    role="user",
-                    content=user_message,
-                )
-                logger.info(f"Message created: {message.id}")
+            # Ensure client context is open
+            if not self._client_context and self.project_client:
+                self._client_context = self.project_client.__enter__()
+            
+            # Create message
+            logger.info(f"Creating message in thread {self.thread.id}...")
+            message = self.project_client.agents.messages.create(
+                thread_id=self.thread.id,
+                role="user",
+                content=user_message,
+            )
+            logger.info(f"Message created: {message.id}")
+            
+            # Create and poll run
+            logger.info(f"Creating run for agent {self.agent.id}...")
+            run = self.project_client.agents.runs.create(
+                thread_id=self.thread.id,
+                agent_id=self.agent.id,
+            )
+            logger.info(f"Run created: {run.id}")
+            
+            # Poll for completion
+            max_iterations = 60  # Max 2 minutes
+            iteration = 0
+            
+            while run.status in ("queued", "in_progress") and iteration < max_iterations:
+                await asyncio.sleep(2)
+                iteration += 1
                 
-                # Create and poll run
-                logger.info(f"Creating run for agent {self.agent.id}...")
-                run = self.project_client.agents.runs.create(
-                    thread_id=self.thread.id,
-                    agent_id=self.agent.id,
-                )
-                logger.info(f"Run created: {run.id}")
-                
-                # Poll for completion
-                max_iterations = 60  # Max 2 minutes
-                iteration = 0
-                
-                while run.status in ("queued", "in_progress") and iteration < max_iterations:
-                    await asyncio.sleep(2)
-                    iteration += 1
+                try:
+                    run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
+                    logger.info(f"Run status: {run.status} (iteration {iteration})")
+                except Exception as e:
+                    logger.error(f"Error getting run status: {e}")
+                    await asyncio.sleep(5)
+                    continue
+            
+            if iteration >= max_iterations:
+                logger.warning("Run timed out after maximum iterations")
+                return {
+                    "content": "Request timed out. Please try again.",
+                    "model_used": settings.azure_openai_deployment_name,
+                    "tokens_used": 0,
+                    "response_time": time.time() - start_time
+                }
+            
+            logger.info(f"Run finished with status: {run.status}")
+            
+            if run.status == "failed":
+                error_msg = f"Run failed: {run.last_error}" if hasattr(run, 'last_error') and run.last_error else "Run failed with unknown error"
+                logger.error(error_msg)
+                return {
+                    "content": "Sorry, there was an error processing your request.",
+                    "model_used": settings.azure_openai_deployment_name,
+                    "tokens_used": 0,
+                    "response_time": time.time() - start_time
+                }
+            
+            elif run.status == "completed":
+                # Get the last message from the agent
+                try:
+                    response = self.project_client.agents.messages.get_last_message_by_role(
+                        thread_id=self.thread.id,
+                        role=MessageRole.AGENT,
+                    )
                     
-                    try:
-                        run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
-                        logger.info(f"Run status: {run.status} (iteration {iteration})")
-                    except Exception as e:
-                        logger.error(f"Error getting run status: {e}")
-                        await asyncio.sleep(5)
-                        continue
-                
-                if iteration >= max_iterations:
-                    logger.warning("Run timed out after maximum iterations")
-                    return {
-                        "content": "Request timed out. Please try again.",
-                        "model_used": settings.azure_openai_deployment_name,
-                        "tokens_used": 0,
-                        "response_time": time.time() - start_time
-                    }
-                
-                logger.info(f"Run finished with status: {run.status}")
-                
-                if run.status == "failed":
-                    error_msg = f"Run failed: {run.last_error}" if hasattr(run, 'last_error') and run.last_error else "Run failed with unknown error"
-                    logger.error(error_msg)
-                    return {
-                        "content": "Sorry, there was an error processing your request.",
-                        "model_used": settings.azure_openai_deployment_name,
-                        "tokens_used": 0,
-                        "response_time": time.time() - start_time
-                    }
-                
-                elif run.status == "completed":
-                    # Get the last message from the agent
-                    try:
-                        response = self.project_client.agents.messages.get_last_message_by_role(
-                            thread_id=self.thread.id,
-                            role=MessageRole.AGENT,
-                        )
+                    if response and hasattr(response, 'text_messages') and response.text_messages:
+                        content = "\n".join(t.text.value for t in response.text_messages)
                         
-                        if response and hasattr(response, 'text_messages') and response.text_messages:
-                            content = "\n".join(t.text.value for t in response.text_messages)
-                            
-                            return {
-                                "content": content,
-                                "model_used": settings.azure_openai_deployment_name,
-                                "tokens_used": 100,  # Estimate since actual tokens not available
-                                "response_time": time.time() - start_time
-                            }
-                        else:
-                            logger.warning("No response message found")
-                            return {
-                                "content": "No response received from the agent.",
-                                "model_used": settings.azure_openai_deployment_name,
-                                "tokens_used": 0,
-                                "response_time": time.time() - start_time
-                            }
-                            
-                    except Exception as e:
-                        logger.error(f"Error getting response message: {e}")
                         return {
-                            "content": "Error retrieving response from the agent.",
+                            "content": content,
+                            "model_used": settings.azure_openai_deployment_name,
+                            "tokens_used": 100,  # Estimate since actual tokens not available
+                            "response_time": time.time() - start_time
+                        }
+                    else:
+                        logger.warning("No response message found")
+                        return {
+                            "content": "No response received from the agent.",
                             "model_used": settings.azure_openai_deployment_name,
                             "tokens_used": 0,
                             "response_time": time.time() - start_time
                         }
-                
-                else:
-                    logger.warning(f"Unexpected run status: {run.status}")
+                        
+                except Exception as e:
+                    logger.error(f"Error getting response message: {e}")
                     return {
-                        "content": f"Unexpected response status: {run.status}",
+                        "content": "Error retrieving response from the agent.",
                         "model_used": settings.azure_openai_deployment_name,
                         "tokens_used": 0,
                         "response_time": time.time() - start_time
                     }
+            
+            else:
+                logger.warning(f"Unexpected run status: {run.status}")
+                return {
+                    "content": f"Unexpected response status: {run.status}",
+                    "model_used": settings.azure_openai_deployment_name,
+                    "tokens_used": 0,
+                    "response_time": time.time() - start_time
+                }
             
         except Exception as e:
             logger.error("Failed to generate agent response", error=str(e))
@@ -278,9 +277,21 @@ class SimpleAzureAgentService:
         """Cleanup resources."""
         try:
             if self.project_client and self.agent:
-                with self.project_client:
-                    self.project_client.agents.delete_agent(self.agent.id)
-                    logger.info(f"Deleted agent: {self.agent.id}")
+                # Ensure client context is open for cleanup
+                if not self._client_context:
+                    self._client_context = self.project_client.__enter__()
+                
+                self.project_client.agents.delete_agent(self.agent.id)
+                logger.info(f"Deleted agent: {self.agent.id}")
+            
+            # Close client context if open
+            if self._client_context and self.project_client:
+                try:
+                    self.project_client.__exit__(None, None, None)
+                    self._client_context = None
+                except Exception as e:
+                    logger.warning(f"Error closing client context: {e}")
+                    
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
 

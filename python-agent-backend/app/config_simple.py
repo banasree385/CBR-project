@@ -40,7 +40,7 @@ class Settings:
         self.azure_project_name = os.getenv("AZURE_PROJECT_NAME", "")
 
         # CORS Configuration
-        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://localhost:8001")
+        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://localhost:8001,http://127.0.0.1:3000,http://127.0.0.1:8000,http://127.0.0.1:8001")
         self.cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
 
 
