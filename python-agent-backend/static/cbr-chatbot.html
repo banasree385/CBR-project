@@ -190,6 +190,17 @@
             margin-bottom: 8px;
         }
 
+        .bot .tool-source {
+            display: block;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(33, 150, 243, 0.1);
+            border-left: 3px solid #2196F3;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #1565c0;
+        }
+
         .error {
             background: linear-gradient(135deg, #ffebee, #ffcdd2);
             color: #c62828;
@@ -447,6 +458,8 @@
                 .replace(/^(\d+)\. (.+)$/gm, '$1. $2')
                 // Convert bold text
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Convert tool source information (italic text)
+                .replace(/\*(.+?)\*/g, '<em class="tool-source">$1</em>')
                 // Convert headers
                 .replace(/^### (.+)$/gm, '<h4>$1</h4>')
                 .replace(/^## (.+)$/gm, '<h3>$1</h3>')
@@ -564,8 +577,16 @@
                 // Hide typing indicator
                 hideTypingIndicator();
 
-                // Add bot response
-                addMessage(data.message || 'Geen antwoord ontvangen', 'bot');
+                // Add bot response with tool tracking
+                let botMessage = data.message || 'Geen antwoord ontvangen';
+                
+                // Add tool usage indicator if available
+                if (data.tools_used && data.tools_used.length > 0) {
+                    const toolInfo = `\n\n*Bronnen: ${data.tools_used.join(', ')}*`;
+                    botMessage += toolInfo;
+                }
+                
+                addMessage(botMessage, 'bot');
 
             } catch (error) {
                 console.error('CBR Assistant: Error:', error);

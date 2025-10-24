@@ -6,7 +6,7 @@ Based on the approach that doesn't require Azure AD authentication
 import asyncio
 import time
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, List
 import structlog
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import (
@@ -288,6 +288,10 @@ Keep responses focused and fast."""
                     run = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=run.id)
                     logger.info(f"Run status: {run.status} (iteration {iteration})")
                     
+                    # Track tool usage for transparency
+                    if hasattr(run, 'required_action') and run.required_action:
+                        logger.info(f"🔧 Tools required: {run.required_action}")
+                    
                     # Note: Azure AI Foundry handles Bing grounding tool execution automatically
                     # No manual tool execution needed for BingGroundingTool
                             
@@ -318,6 +322,24 @@ Keep responses focused and fast."""
                 }
             
             elif run.status == "completed":
+                # Detect which tools were used by analyzing the run
+                tools_used = []
+                try:
+                    # Check if run has tool calls or annotations
+                    if hasattr(run, 'steps'):
+                        for step in getattr(run, 'steps', []):
+                            if hasattr(step, 'type') and 'tool' in str(step.type).lower():
+                                tools_used.append(str(step.type))
+                    
+                    # Log tool usage for transparency
+                    if tools_used:
+                        logger.info(f"🔧 Tools detected in response: {', '.join(tools_used)}")
+                    else:
+                        logger.info("🧠 Direct response (no tools used)")
+                        
+                except Exception as e:
+                    logger.warning(f"Could not detect tool usage: {e}")
+                
                 # Get the last message from the agent
                 try:
                     response = self.project_client.agents.messages.get_last_message_by_role(
@@ -328,11 +350,17 @@ Keep responses focused and fast."""
                     if response and hasattr(response, 'text_messages') and response.text_messages:
                         content = "\n".join(t.text.value for t in response.text_messages)
                         
+                        # Detect tool usage from response content
+                        detected_tools = self._detect_tools_from_content(content)
+                        if detected_tools:
+                            logger.info(f"📚 Tool sources detected: {', '.join(detected_tools)}")
+                        
                         return {
                             "content": content,
                             "model_used": settings.azure_openai_deployment_name,
                             "tokens_used": 100,  # Estimate since actual tokens not available
-                            "response_time": time.time() - start_time
+                            "response_time": time.time() - start_time,
+                            "tools_used": detected_tools  # Add tools info to response
                         }
                     else:
                         logger.warning("No response message found")
@@ -400,7 +428,8 @@ Keep responses focused and fast."""
             data_dir_path = "/workspaces/CBR-project/python-agent-backend/data"
             essential_files = [
                 "cbr_procedures_2025.json",    # Core procedures
-                "cbr_advanced_info.json"       # Essential info
+                "cbr_medical_assessment.json",  # Essential info
+                "cbr_unsafe_driving.json"     # Unsafe driving info
             ]
             
             if os.path.exists(data_dir_path):
@@ -444,6 +473,38 @@ Keep responses focused and fast."""
         except Exception as e:
             logger.error(f"Vector store setup failed: {e}")
             return None
+
+    def _detect_tools_from_content(self, content: str) -> List[str]:
+        """Detect which tools were used based on response content patterns."""
+        tools_detected = []
+        
+        # Check for Bing search indicators
+        bing_indicators = [
+            "volgens actuele informatie van cbr.nl",
+            "based on current information from cbr.nl",
+            "according to current cbr.nl",
+            "latest information from cbr.nl"
+        ]
+        if any(indicator.lower() in content.lower() for indicator in bing_indicators):
+            tools_detected.append("🌐 Bing Search (CBR.nl)")
+        
+        # Check for file search indicators  
+        file_search_indicators = [
+            "volgens de cbr-documentatie in mijn kennisbank",
+            "according to the cbr documentation in my knowledge base",
+            "based on the cbr knowledge base",
+            "from the cbr documentation"
+        ]
+        if any(indicator.lower() in content.lower() for indicator in file_search_indicators):
+            tools_detected.append("📁 File Search (Knowledge Base)")
+        
+        # Check for citations or references
+        if "cbr.nl" in content.lower() and not tools_detected:
+            tools_detected.append("🌐 Web Search (inferred)")
+        elif any(word in content.lower() for word in ["procedures", "categories", "requirements"]) and not tools_detected:
+            tools_detected.append("📁 Knowledge Base (inferred)")
+            
+        return tools_detected
     
     async def cleanup(self):
         """Cleanup resources."""
