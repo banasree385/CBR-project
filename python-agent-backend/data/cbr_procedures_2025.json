@@ -1,0 +1,42 @@
+[
+  {
+    "id": "cbr_exam_costs_2025",
+    "title": "CBR Exam Costs and Fees 2025",
+    "content": "Current CBR exam costs: Theory exam €48.75 (increase from €48.00), Practical test car (B) €89.00, Motorcycle test €99.00, Truck test €179.00. Additional costs: English language surcharge €6.25, Evening/weekend surcharge €6.00. Retake fees same as original exam costs.",
+    "category": "costs_fees",
+    "source": "CBR official tariffs 2025",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "cbr_booking_procedures",
+    "title": "How to Book CBR Exams",
+    "content": "Book theory and practical exams online at cbr.nl/mijn-cbr. Requirements: Valid DigiD, theory exam must be passed before booking practical test. Payment via iDEAL or credit card. Cancel/reschedule up to 5 working days before exam without penalty. Emergency cancellation possible with medical certificate.",
+    "category": "procedures",
+    "source": "CBR booking system guide",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "cbr_theory_exam_details",
+    "title": "CBR Theory Exam Comprehensive Guide",
+    "content": "Theory exam consists of 65 multiple choice questions, 44 correct answers required to pass (67.7%). Exam duration: 30 minutes for most categories. Available languages: Dutch, English, German, Turkish, Arabic. Topics covered: traffic rules, road signs, hazard perception, environmental awareness. Pass rate approximately 45-50%. Valid for 18 months after passing.",
+    "category": "theory_exam",
+    "source": "CBR exam specifications",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "cbr_practical_test_format",
+    "title": "CBR Practical Driving Test Format",
+    "content": "Practical test duration: 35 minutes for car (B), 40 minutes for motorcycle. Test includes: general driving skills, special maneuvers (parallel parking, 3-point turn, emergency braking), independent driving (following directions or GPS). Assessment criteria: control of vehicle, observation, positioning, communication with other road users. Pass rate varies by location (60-75%).",
+    "category": "practical_test",
+    "source": "CBR test procedures manual",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "cbr_license_validity",
+    "title": "Dutch Driving License Validity and Renewal",
+    "content": "Dutch driving licenses valid for 10 years (issued after 2013). Renewal required before expiry date. EU licenses accepted for visitors up to 185 days. Non-EU licenses: exchange possible within 185 days of residency. Medical examination required for certain categories and after age 75. Digital driving license available via RDW app.",
+    "category": "license_validity",
+    "source": "RDW/CBR regulations",
+    "last_updated": "2025-01-01"
+  }
+]

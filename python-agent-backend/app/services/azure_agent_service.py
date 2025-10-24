@@ -5,19 +5,18 @@ Based on the approach that doesn't require Azure AD authentication
 
 import asyncio
 import time
-import ssl
-import certifi
 import os
-import urllib3
 from typing import Optional, Dict, Any, List
 import structlog
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents import AgentsClient
 from azure.ai.agents.models import (
     Agent,
     AgentThread,
     MessageRole,
     BingGroundingTool,
+    FileSearchTool,
+    ToolResources,
+    FileSearchToolResource,
 )
 from azure.identity import DefaultAzureCredential
 
@@ -43,23 +42,14 @@ class SimpleAzureAgentService:
     def _configure_ssl(self):
         """Configure SSL settings for Azure AI services."""
         try:
-            # Use proper SSL verification with updated certificates for Codespace
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-            ssl_context.check_hostname = True
-            ssl_context.verify_mode = ssl.CERT_REQUIRED
-            
+            # SSL verification is handled automatically by Azure SDK
             logger.info("SSL verification enabled with proper certificates for Azure AI services")
-            
         except Exception as e:
             logger.error("Failed to configure SSL", error=str(e))
     
     def _initialize_client(self):
         """Initialize the Azure AI Project client using simple approach."""
         try:
-            # Debug: Log the endpoint value
-            logger.info(f"Azure AI Foundry endpoint from config: '{settings.azure_ai_foundry_endpoint}'")
-            logger.info(f"Azure AI Foundry key present: {bool(settings.azure_ai_foundry_key)}")
-            
             # Check if we have real credentials
             if not settings.azure_ai_foundry_endpoint or settings.azure_ai_foundry_endpoint.startswith("https://your-"):
                 logger.warning("No real Azure AI Foundry endpoint found, using mock mode")
@@ -131,23 +121,35 @@ class SimpleAzureAgentService:
                 # Create new agent if no existing agent or retrieval failed
                 if not self.agent:
                     logger.info("Creating new agent...")
-                    # Create agent if not exists
-            if not self.agent:
-                logger.info("Creating agent...")
-                
-                # Initialize Bing Grounding tool with your connection
-                bing_connection_id = os.getenv("BING_CONNECTION_ID")
-                if not bing_connection_id:
-                    logger.warning("BING_CONNECTION_ID not set, agent will work without Bing grounding")
-                    bing_tool = None
-                else:
-                    logger.info(f"Using Bing connection: {bing_connection_id}")
-                    bing_tool = BingGroundingTool(connection_id=bing_connection_id)
-                
-                # Create agent with enhanced instructions for CBR grounding
-                agent_instructions = """You are a helpful assistant specializing in Dutch driving licenses, exams, and regulations from CBR.nl.
+                    
+                    # Setup tools
+                    tools_to_add = []
+                    
+                    # Initialize Bing Grounding tool
+                    bing_connection_id = os.getenv("BING_CONNECTION_ID")
+                    if bing_connection_id:
+                        logger.info(f"Adding Bing grounding tool with connection: {bing_connection_id}")
+                        bing_tool = BingGroundingTool(connection_id=bing_connection_id)
+                        tools_to_add.extend(bing_tool.definitions)
+                    else:
+                        logger.warning("BING_CONNECTION_ID not set, skipping Bing grounding")
+                    
+                    # Initialize File Search tool for JSON RAG
+                    logger.info("Adding File Search tool for JSON RAG")
+                    file_search_tool = FileSearchTool()
+                    tools_to_add.extend(file_search_tool.definitions)
+                    
+                    # Create agent with enhanced instructions for CBR grounding
+                    agent_instructions = """You are a helpful assistant specializing in Dutch driving licenses, exams, and regulations from CBR.nl.
 
-IMPORTANT: When users ask about CBR-related topics (driving licenses, theory exams, practical tests, costs, requirements), ALWAYS search for current information from CBR.nl using your web search capabilities.
+You have access to two powerful tools:
+1. Web Search: For finding current information from CBR.nl and other websites
+2. File Search: For searching through uploaded CBR-related documents and JSON knowledge base
+
+IMPORTANT ROUTING INSTRUCTIONS:
+- For current prices, recent changes, or real-time information: Use web search to get latest data from CBR.nl
+- For detailed procedures, requirements, or established information: Use file search to access your knowledge base
+- When in doubt, use both tools and compare/combine the information
 
 Your expertise includes:
 - Theory exam costs and procedures  
@@ -156,34 +158,51 @@ Your expertise includes:
 - CBR regulations and policies
 - Dutch traffic laws related to licensing
 
-INSTRUCTIONS:
-1. ALWAYS search for current information when asked about CBR topics
-2. When providing information found through web search, mention "Based on current information from CBR.nl" or "According to the latest information I found"
-3. Include citations and source references when available
-4. If information is from your training data, clearly state "Based on my general knowledge" to distinguish it from current web search results
+RESPONSE GUIDELINES:
+1. When using web search results, mention "Based on current information from CBR.nl"
+2. When using file search results, mention "According to the CBR documentation in my knowledge base"
+3. Always cite your sources and be clear about where information comes from
+4. If information conflicts between sources, acknowledge this and explain the difference
+5. Combine information from both sources when relevant
 
-Always search for the most current information and cite your sources from CBR.nl."""
+Always provide accurate, helpful information about CBR-related topics."""
 
-                # Create agent with or without Bing grounding
-                if bing_tool:
-                    self.agent = self.project_client.agents.create_agent(
-                        model=settings.azure_openai_deployment_name,
-                        name="CBR.nl Assistant with Bing Grounding",
-                        instructions=agent_instructions,
-                        tools=bing_tool.definitions,  # Use official Bing grounding tool
-                        temperature=0.7,
-                        headers={"x-ms-enable-preview": "true"},
-                    )
-                    logger.info(f"Created agent with Bing grounding, ID: {self.agent.id}")
-                else:
-                    self.agent = self.project_client.agents.create_agent(
-                        model=settings.azure_openai_deployment_name,
-                        name="CBR.nl Assistant",
-                        instructions=agent_instructions,
-                        temperature=0.7,
-                        headers={"x-ms-enable-preview": "true"},
-                    )
-                    logger.info(f"Created agent without grounding, ID: {self.agent.id}")
+                    # Setup vector store for file search BEFORE creating agent
+                    vector_store = await self._setup_vector_store()
+                    
+                    # Create agent with tools and vector store
+                    if tools_to_add:
+                        agent_kwargs = {
+                            "model": settings.azure_openai_deployment_name,
+                            "name": "CBR.nl Assistant with RAG and Web Search",
+                            "instructions": agent_instructions,
+                            "tools": tools_to_add,
+                            "temperature": 0.7,
+                            "headers": {"x-ms-enable-preview": "true"},
+                        }
+                        
+                        # Add vector store if available using proper SDK objects
+                        if vector_store:
+                            file_search_resource = FileSearchToolResource(
+                                vector_store_ids=[vector_store.id]
+                            )
+                            tool_resources = ToolResources(
+                                file_search=file_search_resource
+                            )
+                            agent_kwargs["tool_resources"] = tool_resources
+                            logger.info(f"🔗 Adding vector store {vector_store.id} to agent creation")
+                        
+                        self.agent = self.project_client.agents.create_agent(**agent_kwargs)
+                        logger.info(f"Created agent with {len(tools_to_add)} tools, ID: {self.agent.id}")
+                    else:
+                        self.agent = self.project_client.agents.create_agent(
+                            model=settings.azure_openai_deployment_name,
+                            name="CBR.nl Assistant",
+                            instructions=agent_instructions,
+                            temperature=0.7,
+                            headers={"x-ms-enable-preview": "true"},
+                        )
+                        logger.info(f"Created agent without tools, ID: {self.agent.id}")
             
             # Create thread if not exists
             if not self.thread:
@@ -339,6 +358,65 @@ Always search for the most current information and cite your sources from CBR.nl
                 "tokens_used": 50,
                 "response_time": 0.1
             }
+    
+    async def _setup_vector_store(self):
+        """Setup vector store and upload JSON files for file search."""
+        try:
+            if not self.project_client:
+                logger.warning("No project client available for vector store setup")
+                return None
+            
+            # Create vector store
+            logger.info("Creating vector store for CBR knowledge base...")
+            vector_store = self.project_client.agents.vector_stores.create(
+                name="cbr-knowledge-base",
+                expires_after={"anchor": "last_active_at", "days": 7}
+            )
+            logger.info(f"✅ Created vector store: {vector_store.id}")
+            
+            # Upload JSON files from data directory
+            data_dir_path = "/workspaces/CBR-project/python-agent-backend/data"
+            if os.path.exists(data_dir_path):
+                uploaded_files = []
+                
+                # Find all JSON files in data directory
+                for filename in os.listdir(data_dir_path):
+                    if filename.endswith('.json'):
+                        file_path = os.path.join(data_dir_path, filename)
+                        try:
+                            # Upload file using agents.files.upload
+                            with open(file_path, "rb") as f:
+                                # Upload file using the correct method
+                                uploaded_file = self.project_client.agents.files.upload(
+                                    file=f,
+                                    purpose="assistants"
+                                )
+                                
+                                # Add file to vector store using vector_store_files
+                                vector_store_file = self.project_client.agents.vector_store_files.create(
+                                    vector_store_id=vector_store.id,
+                                    file_id=uploaded_file.id
+                                )
+                                
+                                uploaded_files.append(filename)
+                                logger.info(f"📁 Uploaded: {filename} -> file: {uploaded_file.id}, vs_file: {vector_store_file.id}")
+                                
+                        except Exception as e:
+                            logger.error(f"Failed to upload {filename}: {e}")
+                
+                if uploaded_files:
+                    logger.info(f"✅ Vector store ready with {len(uploaded_files)} files: {uploaded_files}")
+                    return vector_store
+                else:
+                    logger.warning("No files uploaded to vector store")
+                    return vector_store
+            else:
+                logger.warning(f"Data directory not found: {data_dir_path}")
+                return vector_store
+                
+        except Exception as e:
+            logger.error(f"Vector store setup failed: {e}")
+            return None
     
     async def cleanup(self):
         """Cleanup resources."""

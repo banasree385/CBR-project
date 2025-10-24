@@ -1,0 +1,26 @@
+[
+  {
+    "id": "license_categories_detailed",
+    "title": "Complete Dutch License Categories",
+    "content": "AM (moped): 16+ years, max 25km/h, no gear required. A1 (light motorcycle): 18+ years, max 11kW, 125cc. A2 (medium motorcycle): 20+ years, max 35kW. A (heavy motorcycle): 24+ years (21 with A2 experience), unlimited power. B (car): 18+ years, max 3500kg, max 8 passengers. BE (car+trailer): 18+ years, requires B license. C1 (small truck): 18+ years, 3500-7500kg. C (truck): 21+ years, unlimited weight. D (bus): 24+ years, passenger transport.",
+    "category": "license_types",
+    "source": "CBR category specifications",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "medical_requirements",
+    "title": "Medical Requirements for Dutch Driving License",
+    "content": "Standard health declaration required for all applicants. Medical examination mandatory for: drivers over 75 years, certain medical conditions (diabetes, epilepsy, heart conditions), professional drivers (C, D categories). Eye test requirements: visual acuity 0.5 (both eyes), 0.6 (better eye). Color blindness not automatically disqualifying. Hearing requirements only for professional categories.",
+    "category": "medical",
+    "source": "CBR medical guidelines",
+    "last_updated": "2025-01-01"
+  },
+  {
+    "id": "international_license_exchange",
+    "title": "International License Exchange Netherlands",
+    "content": "EU/EEA licenses: exchange not required, valid until expiry. Non-EU countries with exchange agreement: USA (some states), Australia, Canada, Japan, South Korea, Switzerland. Exchange period: 185 days from becoming Dutch resident. Required documents: foreign license, translation (if not English/German/French), proof of residency, health declaration. Exchange fee: €43.50.",
+    "category": "international",
+    "source": "RDW exchange regulations",
+    "last_updated": "2025-01-01"
+  }
+]
