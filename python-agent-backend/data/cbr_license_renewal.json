@@ -1,0 +1,54 @@
+{
+    "license_renewal": {
+        "notification": {
+            "sent_by": "RDW",
+            "sent_weeks_before_expiry": 19,
+            "channels": [
+                "Post",
+                "MijnOverheid"
+            ]
+        },
+        "health_declaration": {
+            "required": true,
+            "conditions": [
+                "Age >= 75",
+                "Medical condition affecting driving",
+                "Renewal of large categories (C, D, etc.)"
+            ],
+            "submission_methods": [
+                "Online via DigiD",
+                "Paper form"
+            ],
+            "status": "Submitted",
+            "review_time_weeks": 4
+        },
+        "cbr_assessment": {
+            "steps": [
+                "Review health declaration",
+                "Refer to doctor if needed",
+                "Optional driving test",
+                "Final decision"
+            ],
+            "possible_decisions": [
+                "Rijgeschikt",
+                "Rijgeschikt voor bepaalde tijd",
+                "Rijgeschikt onder voorwaarden",
+                "Niet rijgeschikt"
+            ]
+        },
+        "municipality_application": {
+            "methods": [
+                "In-person",
+                "Online via RDW"
+            ],
+            "pickup_required": true,
+            "cost_info": "Check local municipality website"
+        },
+        "eligibility": {
+            "cannot_renew_if": [
+                "Last renewal before 30 June 1980",
+                "License expired before 30 June 1985"
+            ]
+        }
+    }
+}

@@ -1,0 +1,68 @@
+{
+    "police_notification": {
+        "purpose": "Police informs CBR when there is doubt about a driver's fitness or safety.",
+        "categories": [
+            "Alcohol",
+            "Drugs",
+            "Medical",
+            "Driving behavior",
+            "Driving skills"
+        ],
+        "criteria": {
+            "alcohol": {
+                "beginners": {
+                    "first_offense": "≥220 µg/l (0.5 ‰)",
+                    "recidive": "≥88 µg/l (0.2 ‰) within 5 years"
+                },
+                "experienced": {
+                    "first_offense": "≥350 µg/l (0.8 ‰)",
+                    "recidive": "≥220 µg/l (0.5 ‰) within 5 years"
+                }
+            },
+            "drugs": {
+                "limit": "Above legal threshold proven by saliva and blood test",
+                "refusal": "Refusal to cooperate with test"
+            },
+            "medical": [
+                "Blackouts",
+                "Severe dizziness",
+                "Uncontrolled movements",
+                "Reduced vision",
+                "Confusion or memory issues"
+            ],
+            "behavior": [
+                "Speeding ≥50 km/h over limit",
+                "Aggressive driving",
+                "Multiple dangerous acts in one trip"
+            ],
+            "skills": [
+                "Insufficient control of vehicle",
+                "Unsafe maneuvering",
+                "Poor traffic interaction"
+            ]
+        },
+        "possible_measures": [
+            "LEMA (Lichte Educatieve Maatregel Alcohol)",
+            "EMA (Educatieve Maatregel Alcohol)",
+            "EMD (Educatieve Maatregel Drugs)",
+            "EMG (Educatieve Maatregel Gedrag)",
+            "Driving ability investigation",
+            "Medical investigation",
+            "License suspension"
+        ],
+        "procedure": {
+            "steps": [
+                "Police sends mededeling to CBR",
+                "CBR reviews criteria",
+                "CBR imposes measure or investigation",
+                "Driver receives official letter",
+                "Optional voluntary surrender of license"
+            ]
+        },
+        "legal_basis": [
+            "Wegenverkeerswet",
+            "Reglement Rijbewijzen",
+            "Regeling Eisen Geschiktheid 2000"
+        ]
+    }
+}

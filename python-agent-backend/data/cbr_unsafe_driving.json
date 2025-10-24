@@ -1,0 +1,52 @@
+{
+    "unsafe_driving": {
+        "triggers": [
+            "Driving under influence of alcohol or drugs",
+            "Excessive speeding (≥50 km/h over limit)",
+            "Aggressive behavior (tailgating, cutting off others)",
+            "Multiple serious traffic violations"
+        ],
+        "consequences": {
+            "possible_actions": [
+                "Mandatory EMG course (Educatieve Maatregel Gedrag)",
+                "Mandatory LEMG course (shorter version for first-time offenders)",
+                "Driving ability investigation",
+                "License suspension or revocation"
+            ]
+        },
+        "emg_course": {
+            "description": "Educatieve Maatregel Gedrag en verkeer (EMG) teaches safe driving and awareness of risks.",
+            "duration": "3 sessions of 1 daypart each",
+            "costs": {
+                "opleggingskosten": 386,
+                "uitvoeringskosten": 930,
+                "currency": "EUR"
+            },
+            "mandatory_if": [
+                "≥60 km/h speeding inside or outside city",
+                "≥2 violations in one trip",
+                "Combination of speeding and other dangerous acts"
+            ]
+        },
+        "lemg_course": {
+            "description": "Shorter course for first-time offenders with serious speeding violations.",
+            "duration": "2 half-day sessions + follow-up",
+            "mandatory_if": [
+                "Speeding 50–60 km/h over limit",
+                "Young or novice drivers"
+            ]
+        },
+        "investigation": {
+            "reason": [
+                "Police doubts driving skills",
+                "Failure to attend EMG course",
+                "Repeated offenses"
+            ],
+            "steps": [
+                "CBR sends letter",
+                "Driving test under observation",
+                "Decision: rijgeschikt or niet rijgeschikt"
+            ]
+        }
+    }
+}

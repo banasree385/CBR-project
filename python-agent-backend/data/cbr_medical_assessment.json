@@ -1,0 +1,54 @@
+{
+    "medical_assessment": {
+        "purpose": "Determine if a driver is mentally and physically fit to drive safely.",
+        "trigger_conditions": [
+            "Age ≥ 75",
+            "Applying for C, CE, D, DE license categories",
+            "Health changes affecting driving ability",
+            "Police doubts driving safety"
+        ],
+        "process": {
+            "steps": [
+                "Driver submits Gezondheidsverklaring (Health Declaration)",
+                "CBR reviews answers and previous medical info",
+                "Request for doctor or specialist report if needed",
+                "Optional practical driving test (DPR assessment)",
+                "Final decision: rijgeschikt, rijgeschikt met beperkingen, niet rijgeschikt"
+            ]
+        },
+        "doctor_responsibilities": {
+            "inform_patient": "Explain impact of condition on driving ability",
+            "provide_information": [
+                "Nature and severity of condition",
+                "Date of diagnosis",
+                "Physical examination findings"
+            ],
+            "forms": [
+                "Verslag van de arts",
+                "Specialist report if required"
+            ],
+            "submission_methods": [
+                "Digital via ZorgDomein",
+                "Paper form to CBR divisie Rijgeschiktheid"
+            ]
+        },
+        "specialist_involvement": {
+            "mandatory_for": [
+                "Certain conditions under Regeling Eisen Geschiktheid 2000",
+                "Complex neurological or visual impairments"
+            ]
+        },
+        "legal_framework": [
+            "Wegenverkeerswet",
+            "Reglement Rijbewijzen",
+            "Regeling Eisen Geschiktheid 2000",
+            "Wet BIG, WGBO, AVG"
+        ],
+        "decision_outcomes": [
+            "Rijgeschikt zonder beperkingen",
+            "Rijgeschikt met beperkingen (codes on license)",
+            "Niet rijgeschikt",
+            "Afzien (application closed due to missing info)"
+        ]
+    }
+}

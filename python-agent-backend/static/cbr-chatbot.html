@@ -169,6 +169,25 @@
             margin-right: 60px;
             border-bottom-left-radius: 5px;
             border-left: 4px solid #4CAF50;
+            line-height: 1.6;
+        }
+
+        .bot h2, .bot h3, .bot h4 {
+            margin: 15px 0 8px 0;
+            color: #2196F3;
+        }
+
+        .bot h4 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .bot strong {
+            color: #1565c0;
+        }
+
+        .bot br + br {
+            margin-bottom: 8px;
         }
 
         .error {
@@ -416,13 +435,40 @@
             sendButton.style.opacity = hasText ? '1' : '0.6';
         });
 
+        function formatResponse(content) {
+            // Convert markdown-style formatting to HTML
+            let formatted = content
+                // Convert line breaks
+                .replace(/\n/g, '<br>')
+                // Convert bullet points (- or *)
+                .replace(/^- (.+)$/gm, '• $1')
+                .replace(/^\* (.+)$/gm, '• $1')
+                // Convert numbered lists
+                .replace(/^(\d+)\. (.+)$/gm, '$1. $2')
+                // Convert bold text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Convert headers
+                .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+                .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                // Add extra spacing after colons (for instruction formatting)
+                .replace(/:\s*<br>/g, ':<br><br>')
+                // Fix double line breaks
+                .replace(/<br><br><br>/g, '<br><br>');
+            
+            return formatted;
+        }
+
         function addMessage(content, type, showTime = true) {
             console.log('CBR Assistant: Adding message:', content, type);
             const chatBox = document.getElementById('chat-box');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             
-            let messageContent = `<strong>${type === 'user' ? 'Je' : 'CBR Assistant'}:</strong> ${content}`;
+            // Format the content for better display
+            const formattedContent = type === 'bot' ? formatResponse(content) : content;
+            
+            let messageContent = `<strong>${type === 'user' ? 'Je' : 'CBR Assistant'}:</strong> ${formattedContent}`;
             if (showTime) {
                 const time = new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
                 messageContent += `<div class="message-time">${time}</div>`;

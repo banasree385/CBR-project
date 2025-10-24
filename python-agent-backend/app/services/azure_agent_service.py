@@ -36,6 +36,7 @@ class SimpleAzureAgentService:
         self.agent = None
         self.thread = None
         self._client_context = None
+        self._cached_vector_store = None  # Cache vector store to avoid re-uploading
         self._configure_ssl()
         self._initialize_client()
     
@@ -139,45 +140,44 @@ class SimpleAzureAgentService:
                     file_search_tool = FileSearchTool()
                     tools_to_add.extend(file_search_tool.definitions)
                     
-                    # Create agent with enhanced instructions for CBR grounding
-                    agent_instructions = """You are a helpful assistant specializing in Dutch driving licenses, exams, and regulations from CBR.nl.
+                    # Ultra-fast English instructions for maximum performance
+                    agent_instructions = """You are a CBR.nl driving license assistant. SPEED IS PRIORITY.
 
-You have access to two powerful tools:
-1. Web Search: For finding current information from CBR.nl and other websites
-2. File Search: For searching through uploaded CBR-related documents and JSON knowledge base
+## TOOLS:
+1. **Web Search**: Current prices, waiting times, new regulations ONLY
+2. **File Search**: Procedures, requirements, categories ONLY
 
-IMPORTANT ROUTING INSTRUCTIONS:
-- For current prices, recent changes, or real-time information: Use web search to get latest data from CBR.nl
-- For detailed procedures, requirements, or established information: Use file search to access your knowledge base
-- When in doubt, use both tools and compare/combine the information
+## SPEED RULES:
+- Use MAX 1 tool per question
+- Answer directly when possible - avoid tools
+- Be concise and focused
+- Respond in Dutch but think in English
 
-Your expertise includes:
-- Theory exam costs and procedures  
-- Practical test requirements and costs
-- Driving license categories and requirements
-- CBR regulations and policies
-- Dutch traffic laws related to licensing
+## QUERY ROUTING:
+- **Simple questions** → Direct answer (no tools)
+- **Current prices** → Web search 
+- **Procedures** → File search
+- **Never use both tools**
 
-RESPONSE GUIDELINES:
-1. When using web search results, mention "Based on current information from CBR.nl"
-2. When using file search results, mention "According to the CBR documentation in my knowledge base"
-3. Always cite your sources and be clear about where information comes from
-4. If information conflicts between sources, acknowledge this and explain the difference
-5. Combine information from both sources when relevant
+## OUTPUT:
+- Professional Dutch responses
+- Source citations required
+- Bullet points for lists
+- Concise and helpful
 
-Always provide accurate, helpful information about CBR-related topics."""
+Keep responses focused and fast."""
 
-                    # Setup vector store for file search BEFORE creating agent
-                    vector_store = await self._setup_vector_store()
+                    # Setup vector store for file search BEFORE creating agent (with caching)
+                    vector_store = await self._setup_vector_store_cached()
                     
                     # Create agent with tools and vector store
                     if tools_to_add:
                         agent_kwargs = {
                             "model": settings.azure_openai_deployment_name,
-                            "name": "CBR.nl Assistant with RAG and Web Search",
+                            "name": "CBR.nl Speed-Optimized Assistant v2.1",
                             "instructions": agent_instructions,
                             "tools": tools_to_add,
-                            "temperature": 0.7,
+                            "temperature": 0.1,  # Very low temperature for speed
                             "headers": {"x-ms-enable-preview": "true"},
                         }
                         
@@ -197,9 +197,9 @@ Always provide accurate, helpful information about CBR-related topics."""
                     else:
                         self.agent = self.project_client.agents.create_agent(
                             model=settings.azure_openai_deployment_name,
-                            name="CBR.nl Assistant",
+                            name="CBR.nl Assistant - Speed Basic",
                             instructions=agent_instructions,
-                            temperature=0.7,
+                            temperature=0.1,  # Very low temperature for speed
                             headers={"x-ms-enable-preview": "true"},
                         )
                         logger.info(f"Created agent without tools, ID: {self.agent.id}")
@@ -265,12 +265,23 @@ Always provide accurate, helpful information about CBR-related topics."""
             )
             logger.info(f"Run created: {run.id}")
             
-            # Poll for completion
-            max_iterations = 60  # Max 2 minutes
+            # Poll for completion with aggressive timing for speed
+            max_iterations = 30  # Reduced from 120 - timeout faster
             iteration = 0
+            base_sleep = 0.3  # Even faster start - 300ms
             
             while run.status in ("queued", "in_progress", "requires_action") and iteration < max_iterations:
-                await asyncio.sleep(2)
+                # Very aggressive polling for speed
+                if iteration < 3:
+                    sleep_time = base_sleep  # 300ms for first 3 iterations
+                elif iteration < 8:
+                    sleep_time = 0.5  # 500ms for next 5 iterations
+                elif iteration < 15:
+                    sleep_time = 1.0  # 1s for next 7 iterations
+                else:
+                    sleep_time = 1.5  # 1.5s for remaining (was 2s)
+                
+                await asyncio.sleep(sleep_time)
                 iteration += 1
                 
                 try:
@@ -282,13 +293,13 @@ Always provide accurate, helpful information about CBR-related topics."""
                             
                 except Exception as e:
                     logger.error(f"Error getting run status: {e}")
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(1)  # Reduced from 2s to 1s
                     continue
             
             if iteration >= max_iterations:
-                logger.warning("Run timed out after maximum iterations")
+                logger.warning(f"Run timed out after {iteration} iterations (~{iteration * 0.5:.1f}s)")
                 return {
-                    "content": "Request timed out. Please try again.",
+                    "content": "⚡ Timeout: Vraag te complex. Probeer een eenvoudigere vraag.",
                     "model_used": settings.azure_openai_deployment_name,
                     "tokens_used": 0,
                     "response_time": time.time() - start_time
@@ -359,6 +370,17 @@ Always provide accurate, helpful information about CBR-related topics."""
                 "response_time": 0.1
             }
     
+    async def _setup_vector_store_cached(self):
+        """Setup vector store with caching for performance."""
+        if self._cached_vector_store:
+            logger.info(f"♻️ Using cached vector store: {self._cached_vector_store.id}")
+            return self._cached_vector_store
+            
+        # If no cache, create new vector store
+        vector_store = await self._setup_vector_store()
+        self._cached_vector_store = vector_store
+        return vector_store
+
     async def _setup_vector_store(self):
         """Setup vector store and upload JSON files for file search."""
         try:
@@ -374,15 +396,20 @@ Always provide accurate, helpful information about CBR-related topics."""
             )
             logger.info(f"✅ Created vector store: {vector_store.id}")
             
-            # Upload JSON files from data directory
+            # Upload MINIMAL files for maximum speed (2 files only)
             data_dir_path = "/workspaces/CBR-project/python-agent-backend/data"
+            essential_files = [
+                "cbr_procedures_2025.json",    # Core procedures
+                "cbr_advanced_info.json"       # Essential info
+            ]
+            
             if os.path.exists(data_dir_path):
                 uploaded_files = []
                 
-                # Find all JSON files in data directory
-                for filename in os.listdir(data_dir_path):
-                    if filename.endswith('.json'):
-                        file_path = os.path.join(data_dir_path, filename)
+                # Upload only essential files for maximum speed
+                for filename in essential_files:
+                    file_path = os.path.join(data_dir_path, filename)
+                    if os.path.exists(file_path):
                         try:
                             # Upload file using agents.files.upload
                             with open(file_path, "rb") as f:

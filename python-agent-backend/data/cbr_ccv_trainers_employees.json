@@ -1,0 +1,81 @@
+{
+    "ccv": {
+        "division_info": {
+            "description": "CCV handles exams for professional drivers, certifies training courses, and monitors compliance.",
+            "annual_exams": 150000,
+            "iso_certified": true,
+            "contact": {
+                "email": "klantenservice.ccv@cbr.nl",
+                "phone": "088 227 77 00",
+                "address": "Lange Kleiweg 30, 2288 GK Rijswijk ZH"
+            }
+        },
+        "trainers": [
+            {
+                "name": "Jan de Vries",
+                "certifications": [
+                    "PTN-certificaat",
+                    "Code 95 nascholing"
+                ],
+                "requirements": {
+                    "age": ">=23",
+                    "experience_years": 5,
+                    "recent_experience": "8 years window"
+                },
+                "skills": [
+                    "Coaching",
+                    "Feedback",
+                    "Didactic skills"
+                ],
+                "audit_process": {
+                    "steps": [
+                        "Rijvaardigheidsanalyse (120 min)",
+                        "Lesaudit (120 min)"
+                    ],
+                    "status": "Certified"
+                }
+            },
+            {
+                "name": "Petra Janssen",
+                "certifications": [
+                    "Code 95 praktijktrainer"
+                ],
+                "skills": [
+                    "Lesson planning",
+                    "Driving analysis"
+                ],
+                "status": "Pending audit"
+            }
+        ],
+        "employees": [
+            {
+                "role": "Examiner",
+                "responsibilities": [
+                    "Conduct rijvaardigheidsanalyse",
+                    "Evaluate lesaudit",
+                    "Ensure compliance with CCV standards"
+                ]
+            },
+            {
+                "role": "Certification Officer",
+                "responsibilities": [
+                    "Process trainer applications",
+                    "Verify course compliance",
+                    "Issue PTN-certificaat"
+                ]
+            }
+        ],
+        "certification_rules": {
+            "mandatory_for": [
+                "Nascholingsactiviteiten Code 95",
+                "Praktijktoetsen Code 95"
+            ],
+            "application_method": "Via CBR CCV email or TOP internet",
+            "documents_needed": [
+                "Application form",
+                "Proof of experience",
+                "Lesson plan"
+            ]
+        }
+    }
+}

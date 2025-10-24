@@ -1,0 +1,43 @@
+{
+    "professional_exam": {
+        "code_95": {
+            "description": "Code 95 is mandatory for professional drivers of vehicles requiring C or D licenses in the EU.",
+            "validity_years": 5,
+            "requirements": {
+                "initial": "Basiskwalificatie for truck (C) or bus (D)",
+                "renewal": {
+                    "hours": 35,
+                    "practice_hours": 7,
+                    "interval_years": 5
+                }
+            },
+            "eligibility": {
+                "exemptions": [
+                    "C license obtained before 10-09-2009",
+                    "D license obtained before 10-09-2008"
+                ]
+            },
+            "application": {
+                "method": "Via municipality or RDW digital service",
+                "health_declaration_needed": false
+            }
+        },
+        "taxi_exam": {
+            "description": "Taxi vakbekwaamheid exam for full taxi driver card.",
+            "duration_minutes": 85,
+            "components": [
+                "Identity check and signing conditions",
+                "Rijklaarcontrole (vehicle readiness check)",
+                "First ride: contract transport (special target groups)",
+                "Second ride: street taxi transport with route and fare calculation"
+            ],
+            "skills_tested": [
+                "Navigation",
+                "Communication",
+                "Safety",
+                "Fare calculation",
+                "Handling route changes"
+            ]
+        }
+    }
+}

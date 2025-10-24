@@ -1,0 +1,66 @@
+{
+    "driving_schools": [
+        {
+            "name": "RijLess.nl",
+            "rijschoolnummer": "3396W8",
+            "kvk_nummer": "61475653",
+            "contact": {
+                "address": "'s-Gravenweg 31, 2901LA Capelle aan den IJssel",
+                "phone": "(088) 004 23 00",
+                "website": "https://www.rijless.nl"
+            },
+            "specialization": [
+                "Automaat personenauto",
+                "Theorieopleidingen",
+                "Praktijkopleidingen"
+            ],
+            "exam_results": {
+                "total_first_exams": 2335,
+                "average_pass_rate_first": 35,
+                "average_pass_rate_reexam": 41,
+                "locations": [
+                    {
+                        "city": "Amsterdam",
+                        "first_exam_pass_rate": 35,
+                        "re_exam_pass_rate": 38,
+                        "location_average": 47
+                    },
+                    {
+                        "city": "Utrecht",
+                        "first_exam_pass_rate": 36,
+                        "re_exam_pass_rate": 43,
+                        "location_average": 51
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Rijbewijs-service",
+            "rijschoolnummer": "5714Z6",
+            "kvk_nummer": "95354182",
+            "contact": {
+                "address": "Cort van der Lindenstr 75, 4463VE Goes",
+                "phone": "0633796371"
+            },
+            "exam_results": {
+                "total_first_exams": 51,
+                "average_pass_rate_first": 29,
+                "average_pass_rate_reexam": 35,
+                "locations": [
+                    {
+                        "city": "Vlissingen",
+                        "first_exam_pass_rate": 0,
+                        "re_exam_pass_rate": 0,
+                        "location_average": 49
+                    },
+                    {
+                        "city": "Goes",
+                        "first_exam_pass_rate": 30,
+                        "re_exam_pass_rate": 35,
+                        "location_average": 53
+                    }
+                ]
+            }
+        }
+    ]
+}
