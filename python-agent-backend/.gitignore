@@ -42,7 +42,7 @@ coverage.xml
 cover/
 
 # Virtual environments
-.env
+# .env  # Commented out - we want to track .env for this project
 .venv
 env/
 venv/
