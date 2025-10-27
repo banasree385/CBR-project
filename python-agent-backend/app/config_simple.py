@@ -36,7 +36,7 @@ class Settings:
         self.azure_ai_foundry_endpoint = os.getenv("AZURE_AI_FOUNDRY_ENDPOINT", "")
         self.azure_ai_foundry_key = os.getenv("AZURE_AI_FOUNDRY_KEY", "")
         self.azure_subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID", "")
-        self.azure_resource_group = os.getenv("AZURE_RESOURCE_GROUP_NAME", "")
+        self.azure_resource_group = os.getenv("AZURE_RESOURCE_GROUP", "")
         self.azure_project_name = os.getenv("AZURE_PROJECT_NAME", "")
 
         # CORS Configuration

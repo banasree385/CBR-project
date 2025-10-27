@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBR Multi-Agent Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1000px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="70" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="70" cy="80" r="2.5" fill="rgba(255,255,255,0.1)"/></svg>');
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .agent-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 12px;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .agent-status span {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            min-height: 0;
+        }
+
+        .chat-box {
+            flex: 1;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background: #fafafa;
+            scroll-behavior: smooth;
+            min-height: 200px;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .specialists {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .specialist {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .specialist:hover {
+            border-color: #2196f3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+        }
+
+        .specialist.booking-highlight {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: 2px solid #2e7d32;
+        }
+
+        .specialist.booking-highlight:hover {
+            background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: #f0f0f0;
+            color: #333;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .agent-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Consistent formatting for all agent responses */
+        .bot-message h2, .bot-message h3, .bot-message h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .bot-message h2 {
+            font-size: 1.4em;
+            border-bottom: 2px solid #1976d2;
+            padding-bottom: 5px;
+        }
+
+        .bot-message h3 {
+            font-size: 1.2em;
+        }
+
+        .bot-message h4 {
+            font-size: 1.1em;
+        }
+
+        .bot-message code {
+            font-size: 0.9em;
+        }
+
+        .bot-message hr {
+            margin: 15px 0;
+            border: none;
+            border-top: 1px solid #ddd;
+        }
+
+        /* Improve list spacing */
+        .bot-message div[style*="padding-left"] {
+            line-height: 1.4;
+        }
+
+        .intent-badge {
+            display: inline-block;
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .confidence-bar {
+            height: 3px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            width: 60px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ff5722, #ff9800, #4caf50);
+            transition: width 0.3s ease;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1976d2;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            border: none;
+        }
+
+        .quick-action:hover {
+            background: #2196f3;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .quick-action.booking-highlight {
+            background: #4caf50;
+            color: white;
+        }
+
+        .quick-action.booking-highlight:hover {
+            background: #45a049;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+            font-size: 20px;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px;
+            font-style: italic;
+            color: #666;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .typing-dots {
+            display: inline-block;
+        }
+
+        .typing-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+
+            .specialists {
+                grid-template-columns: 1fr;
+            }
+
+            .agent-status {
+                font-size: 10px;
+            }
+
+            .message.user-message {
+                margin-left: 20px;
+            }
+
+            .message.bot-message {
+                margin-right: 20px;
+            }
+        }
+
+        /* Scrollbar styling */
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>🤖 CBR Multi-Agent Assistant</h1>
+                <p class="subtitle">Gespecialiseerde AI-assistenten voor al uw CBR-vragen</p>
+                <div class="agent-status">
+                    <span>🎓 Theory</span>
+                    <span>🚗 Practical</span>
+                    <span>💰 Pricing</span>
+                    <span>📄 Documents</span>
+                    <span>📅 Booking</span>
+                    <span>🔧 General</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div id="chat-box" class="chat-box">
+                <div class="welcome-message">
+                    <h3>🎯 Welkom bij CBR Multi-Agent Assistant!</h3>
+                    <p>Onze gespecialiseerde agents helpen u met verschillende CBR-onderwerpen:</p>
+                    
+                    <div class="specialists">
+                        <div class="specialist">
+                            <strong>🎓 Theory Expert</strong><br>
+                            Theorie-examens, verkeersregels, oefenvragen
+                        </div>
+                        <div class="specialist">
+                            <strong>🚗 Practical Expert</strong><br>
+                            Praktijkexamens, rij-instructies, rijvaardigheden
+                        </div>
+                        <div class="specialist">
+                            <strong>💰 Pricing Expert</strong><br>
+                            Kosten, tarieven, betalingsopties
+                        </div>
+                        <div class="specialist">
+                            <strong>📄 Document Expert</strong><br>
+                            Formulieren, documenten, vereisten
+                        </div>
+                        <div class="specialist booking-highlight">
+                            <strong>📅 Booking Expert</strong><br>
+                            Examens boeken, beschikbaarheid, annuleren
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="quick-action" onclick="sendQuickMessage('Wat kost het theorie-examen?')">💰 Theorie kosten</button>
+                <button class="quick-action" onclick="sendQuickMessage('Hoe bereid ik me voor op praktijkexamen?')">🚗 Praktijk tips</button>
+                <button class="quick-action" onclick="sendQuickMessage('Welke documenten heb ik nodig?')">📄 Documenten</button>
+                <button class="quick-action booking-highlight" onclick="sendQuickMessage('Wanneer kan ik theorie-examen boeken?')">📅 Theorie boeken</button>
+                <button class="quick-action booking-highlight" onclick="sendQuickMessage('Beschikbaarheid praktijkexamen Amsterdam')">📅 Praktijk boeken</button>
+                <button class="quick-action" onclick="sendQuickMessage('Hoe kan ik mijn examen annuleren?')">🔄 Annuleren</button>
+            </div>
+
+            <div class="input-area">
+                <textarea 
+                    id="message-input" 
+                    class="message-input" 
+                    placeholder="Stel uw CBR-vraag aan onze specialisten..."
+                    rows="2"
+                ></textarea>
+                <button id="send-button" class="send-button" onclick="sendMessage()">➤</button>
+            </div>
+
+            <div id="typing-indicator" class="typing-indicator">
+                <span class="typing-dots">AI denkt na</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        let sessionId = `multi-agent-session-${Date.now()}`;
+
+        function addMessage(content, isUser, agentInfo = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (agentInfo && !isUser) {
+                const agentInfoDiv = document.createElement('div');
+                agentInfoDiv.className = 'agent-info';
+                const responseTime = agentInfo.response_time ? `${agentInfo.response_time}ms` : 'N/A';
+                agentInfoDiv.innerHTML = `
+                    <span style="font-weight: 600; color: #1976d2;">🤖 ${agentInfo.agent_used}</span>
+                    <span style="color: #666; font-size: 0.85em;">⏱️ ${responseTime}</span>
+                `;
+                messageDiv.appendChild(agentInfoDiv);
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = formatResponse(content);
+            messageDiv.appendChild(contentDiv);
+            
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function formatResponse(text) {
+            if (!text) return '';
+            
+            return text
+                // Handle line breaks first
+                .replace(/\n/g, '<br>')
+                
+                // Headers (must be before bold formatting)
+                .replace(/^### (.*?)$/gm, '<h4 style="color: #1976d2; margin: 15px 0 8px 0; font-weight: 600;">$1</h4>')
+                .replace(/^## (.*?)$/gm, '<h3 style="color: #1976d2; margin: 18px 0 10px 0; font-weight: 600;">$1</h3>')
+                .replace(/^# (.*?)$/gm, '<h2 style="color: #1976d2; margin: 20px 0 12px 0; font-weight: 600;">$1</h2>')
+                
+                // Bold text
+                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1976d2; font-weight: 600;">$1</strong>')
+                
+                // Lists and bullets
+                .replace(/^[\-\*] (.*?)$/gm, '<div style="margin: 5px 0; padding-left: 15px;">• $1</div>')
+                .replace(/^\d+\. (.*?)$/gm, '<div style="margin: 5px 0; padding-left: 15px;">$1</div>')
+                
+                // Code blocks (inline)
+                .replace(/`(.*?)`/g, '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>')
+                
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #1976d2; text-decoration: underline;">$1</a>')
+                
+                // Horizontal rules
+                .replace(/^---$/gm, '<hr style="border: 1px solid #e0e0e0; margin: 15px 0;">')
+                
+                // Multiple line breaks to proper spacing
+                .replace(/<br><br>/g, '<div style="margin: 10px 0;"></div>')
+                
+                // Clean up extra line breaks after headers
+                .replace(/(<\/h[1-6]>)<br>/g, '$1');
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'block';
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, true);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // Show typing indicator
+            showTyping();
+            sendButton.disabled = true;
+
+            // Hide quick actions after first message
+            const quickActions = document.querySelector('.quick-actions');
+            if (quickActions) {
+                quickActions.style.display = 'none';
+            }
+
+            try {
+                console.log('Azure AI Foundry: Sending message:', message);
+                
+                const response = await fetch('/api/v1/foundry/orchestrator', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Azure AI Foundry: Response received:', data);
+
+                if (response.ok) {
+                    const agentInfo = {
+                        agent_used: data.agent_used,
+                        session_id: data.session_id,
+                        response_time: data.response_time_ms
+                    };
+                    
+                    // Show orchestrator's routing message
+                    addMessage(data.message, false, agentInfo);
+                    
+                    // Check if orchestrator routed to a specific agent and follow up
+                    if (data.agent_used === 'Orchestrator' && data.message.toLowerCase().includes('agent 1')) {
+                        await followUpWithAgent('/api/v1/foundry/agent1', message, sessionId);
+                    } else if (data.agent_used === 'Orchestrator' && data.message.toLowerCase().includes('agent 2')) {
+                        await followUpWithAgent('/api/v1/foundry/agent2', message, sessionId);
+                    }
+                } else {
+                    addMessage('❌ Sorry, er is een fout opgetreden. Probeer het opnieuw.', false);
+                }
+            } catch (error) {
+                console.error('Azure AI Foundry: Error:', error);
+                addMessage('❌ Verbindingsfout. Controleer of de server actief is.', false);
+            } finally {
+                hideTyping();
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        function sendQuickMessage(message) {
+            messageInput.value = message;
+            sendMessage();
+        }
+
+        // Follow up with specific agent after orchestrator routing
+        async function followUpWithAgent(agentEndpoint, originalMessage, sessionId) {
+            try {
+                showTyping();
+                console.log('Following up with agent:', agentEndpoint);
+                
+                const response = await fetch(agentEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: originalMessage,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Agent follow-up response:', data);
+
+                if (response.ok) {
+                    const agentInfo = {
+                        agent_used: data.agent_used,
+                        session_id: data.session_id,
+                        response_time: data.response_time_ms
+                    };
+                    addMessage(data.message, false, agentInfo);
+                } else {
+                    addMessage('❌ Fout bij het ophalen van gedetailleerde informatie.', false);
+                }
+            } catch (error) {
+                console.error('Agent follow-up error:', error);
+                addMessage('❌ Kon geen aanvullende informatie ophalen.', false);
+            } finally {
+                hideTyping();
+            }
+        }
+
+        // Event listeners
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            
+            // Enable/disable send button
+            const hasText = this.value.trim().length > 0;
+            sendButton.disabled = !hasText;
+            sendButton.style.opacity = hasText ? '1' : '0.6';
+        });
+
+        // Focus on input when page loads
+        window.onload = function() {
+            messageInput.focus();
+        };
+
+        console.log('CBR Multi-Agent Assistant: Interface loaded');
+    </script>
+</body>
+</html>

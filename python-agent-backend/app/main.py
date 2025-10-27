@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 import os
 
 from app.config_simple import get_settings
-from app.api import chat, agent
+from app.api import chat, agent, foundry_chat
 from app.utils.logger import setup_logging
 
 # Setup logging
@@ -115,6 +115,12 @@ app.include_router(
     agent.router,
     prefix=f"{settings.api_v1_str}/agent",
     tags=["agent"]
+)
+
+app.include_router(
+    foundry_chat.router,
+    prefix=f"{settings.api_v1_str}",
+    tags=["foundry-agents"]
 )
 
 # Mount static files AFTER API routes
