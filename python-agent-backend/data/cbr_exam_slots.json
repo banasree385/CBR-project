@@ -1,0 +1,34 @@
+[
+  {
+    "exam_type": "theory",
+    "location": "Amsterdam",
+    "date": "2025-11-05",
+    "time": "09:00",
+    "available_slots": 12,
+    "description": "Available theory exam slot in Amsterdam on 2025-11-05 at 09:00. 12 slots open. Book for CBR theory test availability."
+  },
+  {
+    "exam_type": "theory",
+    "location": "Rotterdam",
+    "date": "2025-11-06",
+    "time": "11:00",
+    "available_slots": 8,
+    "description": "Available theory exam slot in Rotterdam on 2025-11-06 at 11:00. 8 slots open. Book for CBR theory test availability."
+  },
+  {
+    "exam_type": "practical",
+    "location": "Amsterdam",
+    "date": "2025-11-07",
+    "time": "14:30",
+    "available_slots": 5,
+    "description": "Available practical exam slot in Amsterdam on 2025-11-07 at 14:30. 5 slots open. Book for CBR practical test availability."
+  },
+  {
+    "exam_type": "practical",
+    "location": "Rotterdam",
+    "date": "2025-11-08",
+    "time": "10:00",
+    "available_slots": 3,
+    "description": "Available practical exam slot in Rotterdam on 2025-11-08 at 10:00. 3 slots open. Book for CBR practical test availability."
+  }
+]

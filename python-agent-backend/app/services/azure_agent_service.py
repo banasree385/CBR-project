@@ -140,32 +140,44 @@ class SimpleAzureAgentService:
                     file_search_tool = FileSearchTool()
                     tools_to_add.extend(file_search_tool.definitions)
                     
-                    # Ultra-fast English instructions for maximum performance
-                    agent_instructions = """You are a CBR.nl driving license assistant. SPEED IS PRIORITY.
+                    # Instructions that encourage tool usage
+                    agent_instructions = """You are a CBR.nl driving license assistant with access to comprehensive knowledge and real-time web search.
 
-## TOOLS:
-1. **Web Search**: Current prices, waiting times, new regulations ONLY
-2. **File Search**: Procedures, requirements, categories ONLY
+## AVAILABLE TOOLS:
+1. **File Search**: Use for CBR procedures, requirements, categories, medical info, safety rules, and especially for available exam slots and exam slot availability.
+2. **Bing Web Search**: Use for current information, news, prices, waiting times, announcements
 
-## SPEED RULES:
-- Use MAX 1 tool per question
-- Answer directly when possible - avoid tools
-- Be concise and focused
-- Respond in Dutch but think in English
+## WHEN TO USE EACH TOOL:
 
-## QUERY ROUTING:
-- **Simple questions** → Direct answer (no tools)
-- **Current prices** → Web search 
-- **Procedures** → File search
-- **Never use both tools**
+### File Search Tool - Use for:
+- CBR procedures and requirements
+- License categories and types
+- Medical assessment processes
+- Exam procedures and content
+- Historical information from CBR documents
+- **Available exam slots and exam slot availability for theory and practical exams (date, time, location, slots, availability)**
 
-## OUTPUT:
-- Professional Dutch responses
-- Source citations required
-- Bullet points for lists
-- Concise and helpful
+### Bing Web Search Tool - Use for:
+- Current CBR prices and fees (search "CBR rijexamen kosten 2025")
+- Current waiting times (search "CBR wachttijden rijexamen")
+- Recent CBR announcements (search "CBR nieuws 2025")
+- Current CBR policies and updates (search "CBR updates 2025")
+- Weather information (search "weather Amsterdam today")
+- Current date/time information
+- Any question about "current", "latest", "today", "recent"
 
-Keep responses focused and fast."""
+## SEARCH STRATEGY:
+- **Always search actively** when users ask for current information
+- Use specific Dutch search terms for CBR-related queries
+- Search CBR.nl, government sites, and news sources
+- Don't say "I couldn't find" - try multiple search approaches
+
+## IMPORTANT:
+- **NEVER** say you can't find information without actually searching
+- **ALWAYS** use web search for current/recent information requests
+- Use specific search queries like "CBR wachttijden 2025" or "CBR tarieven 2025"
+- For questions about available exam slots or exam slot availability, always use the file search tool to provide details from the knowledge base (date, time, location, slots, availability)
+- Provide actual search results, not generic advice to visit websites"""
 
                     # Setup vector store for file search BEFORE creating agent (with caching)
                     vector_store = await self._setup_vector_store_cached()
@@ -248,7 +260,21 @@ Keep responses focused and fast."""
             if not self._client_context and self.project_client:
                 self._client_context = self.project_client.__enter__()
             
-            # Create message
+            # Check for any active run in the thread
+            active_runs = self.project_client.agents.runs.list(thread_id=self.thread.id)
+            for r in active_runs:
+                if r.status in ("queued", "in_progress", "requires_action"):
+                    logger.warning(f"Active run {r.id} detected in thread {self.thread.id}, waiting for completion...")
+                    # Wait for the active run to complete
+                    max_wait = 30
+                    waited = 0
+                    while r.status in ("queued", "in_progress", "requires_action") and waited < max_wait:
+                        await asyncio.sleep(1)
+                        r = self.project_client.agents.runs.get(thread_id=self.thread.id, run_id=r.id)
+                        waited += 1
+                    logger.info(f"Active run {r.id} finished with status {r.status}")
+
+            # Now safe to create a new message
             logger.info(f"Creating message in thread {self.thread.id}...")
             message = self.project_client.agents.messages.create(
                 thread_id=self.thread.id,
@@ -256,7 +282,7 @@ Keep responses focused and fast."""
                 content=user_message,
             )
             logger.info(f"Message created: {message.id}")
-            
+
             # Create and poll run
             logger.info(f"Creating run for agent {self.agent.id}...")
             run = self.project_client.agents.runs.create(
@@ -322,25 +348,7 @@ Keep responses focused and fast."""
                 }
             
             elif run.status == "completed":
-                # Detect which tools were used by analyzing the run
-                tools_used = []
-                try:
-                    # Check if run has tool calls or annotations
-                    if hasattr(run, 'steps'):
-                        for step in getattr(run, 'steps', []):
-                            if hasattr(step, 'type') and 'tool' in str(step.type).lower():
-                                tools_used.append(str(step.type))
-                    
-                    # Log tool usage for transparency
-                    if tools_used:
-                        logger.info(f"🔧 Tools detected in response: {', '.join(tools_used)}")
-                    else:
-                        logger.info("🧠 Direct response (no tools used)")
-                        
-                except Exception as e:
-                    logger.warning(f"Could not detect tool usage: {e}")
-                
-                # Get the last message from the agent
+                # Get the last message from the agent first
                 try:
                     response = self.project_client.agents.messages.get_last_message_by_role(
                         thread_id=self.thread.id,
@@ -350,10 +358,14 @@ Keep responses focused and fast."""
                     if response and hasattr(response, 'text_messages') and response.text_messages:
                         content = "\n".join(t.text.value for t in response.text_messages)
                         
-                        # Detect tool usage from response content
+                        # Detect tool usage from response content (PRIORITY method)
                         detected_tools = self._detect_tools_from_content(content)
+                        
+                        # Log accurate tool usage
                         if detected_tools:
-                            logger.info(f"📚 Tool sources detected: {', '.join(detected_tools)}")
+                            logger.info(f"� Tools used: {', '.join(detected_tools)}")
+                        else:
+                            logger.info("🧠 Direct response (no tools detected)")
                         
                         return {
                             "content": content,
@@ -429,7 +441,8 @@ Keep responses focused and fast."""
             essential_files = [
                 "cbr_procedures_2025.json",    # Core procedures
                 "cbr_medical_assessment.json",  # Essential info
-                "cbr_unsafe_driving.json"     # Unsafe driving info
+                "cbr_unsafe_driving.json",     # Unsafe driving info
+                "cbr_exam_slots.json"           # Exam slots info
             ]
             
             if os.path.exists(data_dir_path):
@@ -478,31 +491,64 @@ Keep responses focused and fast."""
         """Detect which tools were used based on response content patterns."""
         tools_detected = []
         
+        # PRIORITY: Check for Azure AI source citations (definitive proof of tool usage)
+        import re
+        citation_pattern = r'【\d+:\d+†source】'
+        citations = re.findall(citation_pattern, content)
+        
+        if citations:
+            # Analyze citation patterns to distinguish between tools
+            # File search typically has lower numbers (0-10), Bing search has higher numbers (20+)
+            citation_numbers = []
+            for citation in citations:
+                match = re.search(r'【(\d+):\d+†source】', citation)
+                if match:
+                    citation_numbers.append(int(match.group(1)))
+            
+            if citation_numbers:
+                max_citation = max(citation_numbers)
+                min_citation = min(citation_numbers)
+                
+                # Heuristic: Higher citation numbers typically indicate web search
+                if max_citation >= 20:
+                    tools_detected.append("🌐 Bing Grounding Tool (web search)")
+                elif max_citation >= 10:
+                    tools_detected.append("📁 File Search + 🌐 Web Search (hybrid)")
+                else:
+                    tools_detected.append("📁 File Search Tool (knowledge base)")
+                
+                return tools_detected
+        
+        # Fallback: Check for explicit content indicators
         # Check for Bing search indicators
         bing_indicators = [
-            "volgens actuele informatie van cbr.nl",
-            "based on current information from cbr.nl",
-            "according to current cbr.nl",
-            "latest information from cbr.nl"
+            "according to current information",
+            "based on current data",
+            "latest information",
+            "current weather",
+            "today's",
+            "as of"
         ]
         if any(indicator.lower() in content.lower() for indicator in bing_indicators):
-            tools_detected.append("🌐 Bing Search (CBR.nl)")
+            tools_detected.append("🌐 Bing Search (inferred)")
         
         # Check for file search indicators  
         file_search_indicators = [
-            "volgens de cbr-documentatie in mijn kennisbank",
-            "according to the cbr documentation in my knowledge base",
-            "based on the cbr knowledge base",
-            "from the cbr documentation"
+            "volgens de cbr-documentatie",
+            "according to the cbr documentation", 
+            "from the knowledge base",
+            "cbr procedures",
+            "license categories"
         ]
         if any(indicator.lower() in content.lower() for indicator in file_search_indicators):
-            tools_detected.append("📁 File Search (Knowledge Base)")
+            tools_detected.append("📁 File Search (inferred)")
         
-        # Check for citations or references
-        if "cbr.nl" in content.lower() and not tools_detected:
-            tools_detected.append("🌐 Web Search (inferred)")
-        elif any(word in content.lower() for word in ["procedures", "categories", "requirements"]) and not tools_detected:
-            tools_detected.append("📁 Knowledge Base (inferred)")
+        # Final fallback
+        if not tools_detected:
+            if any(word in content.lower() for word in ["weather", "current", "today", "latest"]):
+                tools_detected.append("🌐 Web Search (inferred)")
+            elif any(word in content.lower() for word in ["procedures", "categories", "requirements", "cbr"]):
+                tools_detected.append("📁 Knowledge Base (inferred)")
             
         return tools_detected
     

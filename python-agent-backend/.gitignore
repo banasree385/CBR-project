@@ -42,7 +42,8 @@ coverage.xml
 cover/
 
 # Virtual environments
-# .env  # Commented out - we want to track .env for this project
+.env  # Environment variables with secrets
+.env.backup  # Backup of environment files
 .venv
 env/
 venv/
